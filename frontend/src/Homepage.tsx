@@ -16,7 +16,7 @@ const TASKS: Task[] = [
   {
     id: "1",
     name: "Design homepage",
-    assignee: "Edward",
+    assignee: "Edward Hawkson",
     dueDate: "2025-09-25",
     status: "In Progress",
     comments: "Create responsive component",
@@ -100,27 +100,55 @@ function formatDate(d?: string) {
   }
 }
 
-/**
- * Column sizing strategy:
- * - Give fixed pixel widths to the narrower columns so that every group's table
- *   uses the same column sizing and alignment.
- * - Name column uses the remaining width via calc(100% - fixedSum).
- *
- * Fixed widths:
- *   Assignee: 160
- *   Due Date: 140
- *   Priority: 120
- *   Status:   120
- * Fixed sum = 540px
- */
+/** Visual/spacing constants */
 const COL_WIDTHS = {
   assignee: 160,
-  dueDate: 140,
-  priority: 120,
+  dueDate: 120,
+  priority: 100,
   status: 120,
-  // name will be calc
-  nameCalc: `calc(100% - ${160 + 140 + 120 + 120}px)`,
+  nameCalc: `calc(100% - ${160 + 120 + 100 + 120}px)`,
 };
+
+/** status -> colors reminiscent of ClickUp */
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  Todo: { bg: "#f3f0ff", text: "#6b46ff" },
+  "In Progress": { bg: "#fff7ed", text: "#ff7a00" },
+  Review: { bg: "#eff6ff", text: "#1e40af" },
+  Complete: { bg: "#ecfdf5", text: "#059669" },
+  Unknown: { bg: "#f1f5f9", text: "#374151" },
+};
+
+/** small avatar with initials */
+function Avatar({ name }: { name?: string }) {
+  const initials = (name || "—")
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div
+      style={{
+        width: 28,
+        height: 28,
+        borderRadius: "50%",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 12,
+        color: "#fff",
+        background:
+          "linear-gradient(135deg, rgba(123,97,255,1) 0%, rgba(100,116,255,1) 100%)",
+        boxShadow: "0 1px 2px rgba(16,24,40,0.08)",
+        flexShrink: 0,
+      }}
+      title={name}
+    >
+      {initials === "" ? "?" : initials}
+    </div>
+  );
+}
 
 function countWithSubtasks(tasks: Task[]) {
   let total = 0;
@@ -148,12 +176,10 @@ function sortTasksByDueDateAndName(arr: Task[]) {
 }
 
 export default function TaskPage() {
-  // expanded state for collapsible subtasks
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-
   const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
 
-  // group tasks by status (undefined status -> "Unknown")
+  // group & sort
   const grouped = useMemo(() => {
     const map = new Map<string, Task[]>();
     for (const t of TASKS) {
@@ -173,7 +199,6 @@ export default function TaskPage() {
       return a.localeCompare(b);
     });
 
-    // sort tasks and subtasks recursively
     const groupedSorted = sortedKeys.map((k) => {
       const arr = map.get(k)!.slice().map((t) => {
         const clone: Task = { ...t };
@@ -199,94 +224,182 @@ export default function TaskPage() {
     return groupedSorted;
   }, []);
 
-  // recursive renderer for a task + its subtasks (collapsible)
   const renderTaskRows = (task: Task, depth = 0): React.ReactNode => {
     const hasSub = !!(task.subtasks && task.subtasks.length);
     const isOpen = !!expanded[task.id];
-    const indent = Math.min(depth * 16, 56);
+    const indent = Math.min(depth * 14, 56);
+
+    const statusColor = STATUS_COLORS[task.status] ?? STATUS_COLORS.Unknown;
 
     return (
       <React.Fragment key={task.id}>
-        <tr style={{ borderTop: "1px solid #fafafa" }}>
-          <td style={{ padding: "12px 16px", width: COL_WIDTHS.nameCalc }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <tr
+          style={{
+            borderTop: "1px solid #f3f4f6",
+            background: depth % 2 === 1 ? "#ffffff" : "#ffffff",
+            transition: "background .12s ease",
+          }}
+          className="task-row"
+        >
+          {/* NAME column: collapse icon + task name (avatar removed from here) */}
+          <td
+            style={{
+              padding: "10px 12px",
+              width: COL_WIDTHS.nameCalc,
+              verticalAlign: "middle",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
                 style={{
                   marginLeft: indent,
-                  width: 18,
+                  width: 20,
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: hasSub ? "pointer" : undefined,
+                  color: "#6b7280",
+                  userSelect: "none",
                 }}
                 onClick={() => hasSub && toggle(task.id)}
                 aria-hidden={!hasSub}
               >
-                {hasSub ? <span style={{ userSelect: "none", fontSize: 12 }}>{isOpen ? "▾" : "▸"}</span> : <span style={{ width: 12 }} />}
+                {hasSub ? <span style={{ fontSize: 12 }}>{isOpen ? "▾" : "▸"}</span> : <span style={{ width: 12 }} />}
               </div>
 
-              <div style={{ fontWeight: 600, overflowWrap: "anywhere" }}>{task.name}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>{task.name}</div>
+                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>{task.comments ?? ""}</div>
+                </div>
+              </div>
             </div>
           </td>
 
-          <td style={{ padding: "12px 16px", width: COL_WIDTHS.assignee }}>{task.assignee ?? "-"}</td>
-          <td style={{ padding: "12px 16px", width: COL_WIDTHS.dueDate }}>{formatDate(task.dueDate)}</td>
-          <td style={{ padding: "12px 16px", width: COL_WIDTHS.priority }}>{task.priority ?? "-"}</td>
-          <td style={{ padding: "12px 16px", width: COL_WIDTHS.status }}>{task.status ?? "-"}</td>
-          <td style={{ padding: "12px 16px" }}>{task.comments ?? "-"}</td>
+          <td style={{ padding: "10px 12px", width: COL_WIDTHS.assignee, verticalAlign: "middle" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>                
+                <Avatar name={task.assignee} />
+              </div>
+            </div>
+          </td>
+
+          <td style={{ padding: "10px 12px", width: COL_WIDTHS.dueDate, verticalAlign: "middle" }}>
+            <div style={{ fontSize: 13, color: task.dueDate ? "#111827" : "#9ca3af" }}>{formatDate(task.dueDate)}</div>
+          </td>
+
+          <td style={{ padding: "10px 12px", width: COL_WIDTHS.priority, verticalAlign: "middle" }}>
+            <div
+              style={{
+                fontSize: 12,
+                padding: "6px 8px",
+                borderRadius: 999,
+                display: "inline-block",
+                minWidth: 48,
+                textAlign: "center",
+                background: (task.priority === "High" && "#fff1f2") || (task.priority === "Low" && "#f0fdf4") || "#f3f4f6",
+                color: task.priority === "High" ? "#b91c1c" : task.priority === "Low" ? "#059669" : "#374151",
+                fontWeight: 600,
+              }}
+            >
+              {task.priority ?? "—"}
+            </div>
+          </td>
+
+          <td style={{ padding: "10px 12px", width: COL_WIDTHS.status, verticalAlign: "middle" }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 12,
+                padding: "6px 10px",
+                borderRadius: 999,
+                background: statusColor.bg,
+                color: statusColor.text,
+                fontWeight: 700,
+                textTransform: "none",
+              }}
+            >
+              {task.status}
+            </div>
+          </td>
+
+          <td style={{ padding: "10px 12px", verticalAlign: "middle" }}>
+            <div style={{ fontSize: 13, color: "#6b7280" }}>{task.comments ?? "-"}</div>
+          </td>
         </tr>
 
-        {hasSub && isOpen
-          ? task.subtasks!.map((st) => (
-              <React.Fragment key={st.id}>{renderTaskRows(st, depth + 1)}</React.Fragment>
-            ))
-          : null}
+        {hasSub && isOpen ? (
+          task.subtasks!.map((st) => <React.Fragment key={st.id}>{renderTaskRows(st, depth + 1)}</React.Fragment>)
+        ) : null}
       </React.Fragment>
     );
   };
 
   return (
-    <div style={{ padding: 24, fontFamily: "Inter, system-ui, -apple-system, sans-serif" }}>
-      <h1 style={{ marginBottom: 12 }}>Tasks</h1>
+    <div style={{ padding: 20, fontFamily: "Inter, system-ui, -apple-system, sans-serif", background: "#f8fafc", minHeight: "100vh" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+        <h1 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>Tasks</h1>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              background: "transparent",
+              border: "1px solid transparent",
+              color: "#6b46ff",
+              fontWeight: 700,
+            }}
+          >
+            Filters
+          </button>
+        </div>
+      </div>
 
-      <div style={{ display: "flex", gap: 16, flexDirection: "column" }}>
-        {/* Each group has its own table + header row, but column widths are fixed so they align */}
+      <div style={{ display: "grid", gap: 12 }}>
         {grouped.map(([status, tasks]) => {
           const total = countWithSubtasks(tasks);
           return (
-            <section key={status} style={{ border: "1px solid #e6e6e6", borderRadius: 8, overflow: "hidden" }}>
-              <div
-                style={{
-                  padding: "10px 16px",
-                  background: "#f8fafc",
-                  borderBottom: "1px solid #eee",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <strong style={{ fontSize: 16 }}>{status}</strong>
-                <span style={{ fontSize: 13, color: "#6b7280" }}>
-                  {tasks.length} top-level task{tasks.length !== 1 ? "s" : ""} • {total} total
-                </span>
+            <section
+              key={status}
+              style={{
+                background: "white",
+                borderRadius: 10,
+                padding: 0,
+                boxShadow: "0 6px 18px rgba(15, 23, 42, 0.06)",
+                overflow: "hidden",
+                border: "1px solid rgba(15,23,42,0.04)",
+              }}
+            >
+              <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{status}</div>
+                  <div style={{ fontSize: 13, color: "#6b7280" }}>
+                    {tasks.length} top-level • {total} total
+                  </div>
+                </div>
               </div>
 
               <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                 <thead>
-                  <tr style={{ textAlign: "left", fontSize: 13, color: "#374151" }}>
-                    <th style={{ padding: "10px 16px", borderBottom: "1px solid #f1f5f9", width: COL_WIDTHS.nameCalc }}>Name</th>
-                    <th style={{ padding: "10px 16px", borderBottom: "1px solid #f1f5f9", width: COL_WIDTHS.assignee }}>Assignee</th>
-                    <th style={{ padding: "10px 16px", borderBottom: "1px solid #f1f5f9", width: COL_WIDTHS.dueDate }}>Due Date</th>
-                    <th style={{ padding: "10px 16px", borderBottom: "1px solid #f1f5f9", width: COL_WIDTHS.priority }}>Priority</th>
-                    <th style={{ padding: "10px 16px", borderBottom: "1px solid #f1f5f9", width: COL_WIDTHS.status }}>Status</th>
-                    <th style={{ padding: "10px 16px", borderBottom: "1px solid #f1f5f9" }}>Comments</th>
+                  <tr style={{ textAlign: "left", fontSize: 13, color: "#6b7280", borderTop: "1px solid #f3f4f6" }}>
+                    {/* Name header now includes spacer so it lines up with the actual row names */}
+                    <th style={{ padding: "10px 12px", width: COL_WIDTHS.nameCalc }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 20 }} /> {/* spacer matching collapse icon */}
+                        <div>Name</div>
+                      </div>
+                    </th>
+
+                    <th style={{ padding: "10px 12px", width: COL_WIDTHS.assignee }}>Assignee</th>
+                    <th style={{ padding: "10px 12px", width: COL_WIDTHS.dueDate }}>Due</th>
+                    <th style={{ padding: "10px 12px", width: COL_WIDTHS.priority }}>Priority</th>
+                    <th style={{ padding: "10px 12px", width: COL_WIDTHS.status }}>Status</th>
+                    <th style={{ padding: "10px 12px" }}>Comments</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {tasks.map((t) => (
-                    <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>
-                  ))}
-                </tbody>
+                <tbody>{tasks.map((t) => <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>)}</tbody>
               </table>
             </section>
           );
