@@ -1,4 +1,3 @@
-// frontend/src/Homepage.tsx
 import React, { useMemo, useState } from "react";
 
 type Task = {
@@ -12,6 +11,7 @@ type Task = {
   subtasks?: Task[];
 };
 
+// Hardcoded sample data
 const TASKS: Task[] = [
   {
     id: "1",
