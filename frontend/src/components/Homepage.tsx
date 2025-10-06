@@ -292,16 +292,21 @@ function calculateTimeRemaining(dueDate?: string): string {
     
     const now = new Date();
     const diffMs = dueDt.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    const remainingHours = diffHours % 24;
     
-    if (diffDays < 0) {
-      return `${Math.abs(diffDays)}d overdue`;
-    } else if (diffDays === 0) {
-      return "Due today";
-    } else if (diffDays === 1) {
-      return "1d remaining";
+    if (diffHours < 0) {
+      const absDays = Math.abs(diffDays);
+      const absHours = Math.abs(remainingHours);
+      if (absDays === 0) {
+        return `${absHours}h overdue`;
+      }
+      return absHours > 0 ? `${absDays}d ${absHours}h overdue` : `${absDays}d overdue`;
+    } else if (diffHours < 24) {
+      return diffHours === 0 ? "Due now" : `${diffHours}h remaining`;
     } else {
-      return `${diffDays}d remaining`;
+      return remainingHours > 0 ? `${diffDays}d ${remainingHours}h remaining` : `${diffDays}d remaining`;
     }
   } catch {
     return "-";
@@ -574,7 +579,7 @@ export default function TaskPage() {
             <div 
               style={{ 
                 fontSize: 12, 
-                color: task.timeRemaining?.includes('overdue') ? "#dc2626" : task.timeRemaining === "Due today" ? "#ff7a00" : "#6b7280",
+                color: task.timeRemaining?.includes('overdue') ? "#dc2626" : task.timeRemaining === "Due today" ? "#ff7a00" : task.timeRemaining?.includes("h") && !task.timeRemaining.includes("d") ? "#d20000ff" : "#6b7280",
                 fontWeight: task.timeRemaining?.includes('overdue') || task.timeRemaining === "Due today" ? 600 : 400
               }}
             >
@@ -621,7 +626,7 @@ export default function TaskPage() {
 
           <td style={{ padding: "10px 12px", width: COL_WIDTHS.comments, verticalAlign: "middle", paddingRight: "30px", paddingLeft: "0px"}}>
             {task.comments && task.comments.length > 0 ? (
-              <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#6b7280" }}>
+              <ul style={{ margin: 0, paddingLeft: 0, fontSize: 13, color: "#6b7280" }}>
                 {task.comments.map((comment, idx) => (
                   <li key={idx} style={{ marginBottom: 4 }}>{comment}</li>
                 ))}
@@ -757,7 +762,7 @@ export default function TaskPage() {
                       <th style={{ padding: "10px 12px", width: COL_WIDTHS.timeRemaining }}>Time Remaining</th>
                       <th style={{ padding: "10px 12px", width: COL_WIDTHS.priority }}>Priority</th>
                       <th style={{ padding: "10px 12px", width: COL_WIDTHS.status }}>Status</th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.comments }}>Comments</th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.comments, paddingLeft: "0px"}}>Comments</th>
                     </tr>
                   </thead>
                   <tbody>{tasks.map((t) => <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>)}</tbody>
