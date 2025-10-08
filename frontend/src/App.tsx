@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import TaskPage from "./Homepage";
 
 function App() {
 
   return (
     <>
-      <div>Start Page</div>
+      <TaskPage />;
     </>
   )
 }
