@@ -8,7 +8,7 @@ const StatusBadge = ({ status }) => {
   const colorClass = STATUS_BADGE_CLASSES[status] || STATUS_BADGE_CLASSES.todo;
   
   return (
-    <span className={`text-[11px] border px-2 py-0.5 rounded-full ${colorClass}`}>
+    <span className={`text-[11px] border px-2 py-0.5 rounded-sm ${colorClass}`}>
       {status}
     </span>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import StatusBadge from '../../../shared/components/StatusBadge';
 import { daysSince } from '../../../shared/utils';
+import Toolbar from './Toolbar';
 
 /**
  * Task details modal component positioned next to the clicked task
@@ -38,6 +39,7 @@ const TaskDetails = ({
       
       <div className="flex items-center gap-2">
         <StatusBadge status={task.status} />
+        {/* <Toolbar/> */}
         <div className="text-xs text-gray-500">
           Owner: {task.owner || 'Unassigned'}
         </div>

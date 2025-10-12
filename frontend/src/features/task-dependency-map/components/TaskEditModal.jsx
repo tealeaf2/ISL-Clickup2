@@ -42,10 +42,10 @@ const TaskEditModal = ({
             value={draft?.status}
             onChange={e => onDraftChange(draft => ({ ...draft, status: e.target.value }))}
           >
-            <option value="todo">todo</option>
-            <option value="in-progress">in-progress</option>
-            <option value="blocked">blocked</option>
-            <option value="done">done</option>
+            <option value="todo">To Do</option>
+            <option value="in-progress">In Progress</option>
+            <option value="blocked">Blocked</option>
+            <option value="done">Done</option>
           </select>
         </div>
         
