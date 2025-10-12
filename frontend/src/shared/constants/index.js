@@ -8,10 +8,10 @@ export const LAYOUT_CONSTANTS = {
 
 // Task status colors
 export const STATUS_COLORS = {
-  done: '#10b981', // emerald-500
-  'in-progress': '#3b82f6', // blue-500
+  done: '#2C8C5E', // emerald-500
+  'in-progress': '#1276E2', // blue-500
   blocked: '#ef4444', // red-500
-  todo: '#9ca3af', // gray-400
+  todo: '#6E6E6E', // gray-400
   default: '#6b7280', // gray-500
 };
 
