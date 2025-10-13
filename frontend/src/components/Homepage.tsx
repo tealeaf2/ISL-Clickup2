@@ -1,98 +1,202 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+
+interface ClickUpUser {
+  id: number;
+  username: string;
+  email: string;
+  color: string;
+  profilePicture?: string;
+}
+
+interface ClickUpStatus {
+  status: string;
+  color: string;
+  type: string;
+  orderindex: number;
+}
+
+interface ClickUpPriority {
+  id: string;
+  priority: string;
+  color: string;
+  orderindex: string;
+}
+
+interface ClickUpTask {
+  id: string;
+  name: string;
+  text_content: string;
+  description: string;
+  status: ClickUpStatus;
+  orderindex: string;
+  date_created: string;
+  date_updated: string;
+  date_closed?: string;
+  date_done?: string;
+  creator: ClickUpUser;
+  assignees: ClickUpUser[];
+  watchers: ClickUpUser[];
+  checklists: any[];
+  tags: any[];
+  parent?: string;
+  priority?: ClickUpPriority;
+  due_date?: string;
+  start_date?: string;
+  points?: number;
+  time_estimate?: number;
+  time_spent?: number;
+  custom_fields: any[];
+  dependencies: string[];
+  linked_tasks: string[];
+  team_id: string;
+  url: string;
+  permission_level: string;
+  list: any;
+  project: any;
+  folder: any;
+  space: any;
+}
+
+interface Team {
+  id: string;
+  name: string;
+  color?: string;
+}
+
+const useClickUp = (apiToken: string) => {
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [tasks, setTasks] = useState<ClickUpTask[]>([]);
+  const [taskComments, setTaskComments] = useState<Map<string, string[]>>(new Map());
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+
+  const baseUrl = 'https://api.clickup.com/api/v2';
+  const headers = useMemo(() => ({
+    'Authorization': apiToken,
+    'Content-Type': 'application/json'
+  }), [apiToken]);
+
+  const fetchTeams = useCallback(async () => {
+    if (!apiToken) return;
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await fetch(`${baseUrl}/team`, { headers });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setTeams(data.teams || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch teams');
+    } finally {
+      setLoading(false);
+    }
+  }, [apiToken, headers]);
+
+  const fetchTasks = useCallback(async (teamId: string, params: Record<string, string> = {}) => {
+    if (!apiToken || !teamId) return;
+    try {
+      setLoading(true);
+      setError('');
+      
+      const queryParams = new URLSearchParams({
+        include_closed: 'false',
+        subtasks: 'true', 
+        ...params
+      });
+     
+      const response = await fetch(`${baseUrl}/team/${teamId}/task?${queryParams}`, { headers });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const fetchedTasks = data.tasks || [];
+      setTasks(fetchedTasks);
+      
+      // Fetch comments for each task
+      const commentsMap = new Map<string, string[]>();
+      await Promise.all(
+        fetchedTasks.map(async (task: ClickUpTask) => {
+          try {
+            const commentResponse = await fetch(`${baseUrl}/task/${task.id}/comment`, { headers });
+            if (commentResponse.ok) {
+              const commentData = await commentResponse.json();
+              const comments = commentData.comments || [];
+              if (comments.length > 0) {
+                // Get all comments
+                const allComments = comments.map((c: any) => c.comment_text || '').filter((text: string) => text.trim());
+                commentsMap.set(task.id, allComments);
+              }
+            }
+          } catch (err) {
+            // Silently fail for individual comment fetches
+            console.error(`Failed to fetch comments for task ${task.id}:`, err);
+          }
+        })
+      );
+      
+      setTaskComments(commentsMap);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
+    } finally {
+      setLoading(false);
+    }
+  }, [apiToken, headers]);
+
+  const getMyTasks = useCallback((userEmail: string): ClickUpTask[] => {
+    return tasks.filter(task => 
+      task.assignees.some(assignee => assignee.email === userEmail)
+    );
+  }, [tasks]);
+
+  const getTasksByStatus = useCallback((status: string): ClickUpTask[] => {
+    return tasks.filter(task => task.status.status.toLowerCase() === status.toLowerCase());
+  }, [tasks]);
+
+  const getOverdueTasks = useCallback((): ClickUpTask[] => {
+    const now = Date.now();
+    return tasks.filter(task => 
+      task.due_date && 
+      parseInt(task.due_date) < now && 
+      task.status.type !== 'closed'
+    );
+  }, [tasks]);
+
+  return {
+    teams,
+    tasks,
+    taskComments,
+    loading,
+    error,
+    fetchTeams,
+    fetchTasks,
+    getMyTasks,
+    getTasksByStatus,
+    getOverdueTasks
+  };
+};
 
 type Task = {
   id: string;
   name: string;
   assignee?: string;
   dueDate?: string;
+  timeRemaining?: string;
   priority?: string;
   status: string;
-  comments?: string;
+  comments?: string[];
   subtasks?: Task[];
 };
-
-// Hardcoded sample data
-const TASKS: Task[] = [
-  {
-    id: "1",
-    name: "Design homepage",
-    assignee: "Edward Hawkson",
-    dueDate: "2025-09-25",
-    status: "In Progress",
-    comments: "Create responsive component",
-    subtasks: [
-      {
-        id: "1.1",
-        name: "Wireframe header",
-        assignee: "Edward",
-        dueDate: "2025-09-22",
-        status: "Complete",
-        comments: "Logo and nav layout",
-      },
-      {
-        id: "1.2",
-        name: "Responsive grid",
-        assignee: "Ian",
-        dueDate: "2025-09-24",
-        status: "In Progress",
-        comments: "Mobile + tablet breakpoints",
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: "Implement tasks API integration",
-    status: "Todo",
-    assignee: "Ian",
-    dueDate: "2025-10-01",
-    comments: "Wire up ClickUp API to fetch tasks",
-    subtasks: [
-      {
-        id: "2.1",
-        name: "Auth & tokens",
-        status: "Todo",
-        assignee: "Ian",
-        dueDate: "2025-09-30",
-      },
-    ],
-  },
-  {
-    id: "3",
-    name: "Create Docker Compose File",
-    status: "Complete",
-    assignee: "Khang",
-    dueDate: "2025-09-28",
-  },
-  {
-    id: "4",
-    name: "Refining Graph UI",
-    status: "In Progress",
-    assignee: "Freeman",
-    dueDate: "2025-09-28",
-    comments: "Use Figma to improve the look of the task dependency graph",
-    subtasks: [
-      {
-        id: "4.1",
-        name: "Add hover states",
-        status: "In Progress",
-        assignee: "Freeman",
-        dueDate: "2025-09-27",
-      },
-      {
-        id: "4.2",
-        name: "Accessibility audit",
-        status: "Todo",
-        assignee: "Khang",
-        dueDate: "2025-10-02",
-      },
-    ],
-  },
-];
 
 function formatDate(d?: string) {
   if (!d) return "-";
   try {
-    const dt = new Date(d);
+    const isNumeric = /^\d+$/.test(d);
+    const dt = isNumeric ? new Date(parseInt(d)) : new Date(d);
     if (isNaN(dt.getTime())) return d;
     return dt.toLocaleDateString();
   } catch {
@@ -100,25 +204,56 @@ function formatDate(d?: string) {
   }
 }
 
-/** Visual/spacing constants */
+function calculateTimeRemaining(dueDate?: string): string {
+  if (!dueDate) return "-";
+  
+  try {
+    const isNumeric = /^\d+$/.test(dueDate);
+    const dueDt = isNumeric ? new Date(parseInt(dueDate)) : new Date(dueDate);
+    
+    if (isNaN(dueDt.getTime())) return "-";
+    
+    const now = new Date();
+    const diffMs = dueDt.getTime() - now.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    const remainingHours = diffHours % 24;
+    
+    if (diffHours < 0) {
+      const absDays = Math.abs(diffDays);
+      const absHours = Math.abs(remainingHours);
+      if (absDays === 0) {
+        return `${absHours}h overdue`;
+      }
+      return absHours > 0 ? `${absDays}d ${absHours}h overdue` : `${absDays}d overdue`;
+    } else if (diffHours < 24) {
+      return diffHours === 0 ? "Due now" : `${diffHours}h remaining`;
+    } else {
+      return remainingHours > 0 ? `${diffDays}d ${remainingHours}h remaining` : `${diffDays}d remaining`;
+    }
+  } catch {
+    return "-";
+  }
+}
+
 const COL_WIDTHS = {
   assignee: 160,
   dueDate: 120,
+  timeRemaining: 140,
   priority: 100,
   status: 120,
-  nameCalc: `calc(100% - ${160 + 120 + 100 + 120}px)`,
+  comments: 200,
+  nameCalc: `calc(100% - ${160 + 120 + 140 + 100 + 120 + 200}px)`,
 };
 
-/** status -> colors reminiscent of ClickUp */
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  Todo: { bg: "#f3f0ff", text: "#6b46ff" },
+  "To Do": { bg: "#f3f0ff", text: "#6b46ff" },
   "In Progress": { bg: "#fff7ed", text: "#ff7a00" },
   Review: { bg: "#eff6ff", text: "#1e40af" },
   Complete: { bg: "#ecfdf5", text: "#059669" },
   Unknown: { bg: "#f1f5f9", text: "#374151" },
 };
 
-/** small avatar with initials */
 function Avatar({ name }: { name?: string }) {
   const initials = (name || "—")
     .split(" ")
@@ -175,19 +310,94 @@ function sortTasksByDueDateAndName(arr: Task[]) {
   return copy;
 }
 
+function toTitleCase(str: string): string {
+  if (!str) return str;
+  return str.toLowerCase().split(' ').map(word => {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }).join(' ');
+}
+
+const DEFAULT_API_TOKEN = 'pk_162298770_TTFOD6EK7IPQ39DI7OGZTT78PQTCBGC4';
+
 export default function TaskPage() {
+  const [apiToken, setApiToken] = useState<string>(DEFAULT_API_TOKEN);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
+  const { teams, tasks: clickUpTasks, taskComments, loading, error, fetchTeams, fetchTasks } = useClickUp(apiToken);
 
-  // group & sort
+  useEffect(() => {
+    if (apiToken) {
+      fetchTeams();
+    }
+  }, [apiToken, fetchTeams]);
+
+  useEffect(() => {
+    if (selectedTeamId && apiToken) {
+      fetchTasks(selectedTeamId);
+    }
+  }, [selectedTeamId, apiToken, fetchTasks]);
+
+  const convertedTasks: Task[] = useMemo(() => {
+    const taskMap = new Map<string, Task>();
+    const topLevelTasks: Task[] = [];
+    
+    for (const task of clickUpTasks) {
+      const normalizedStatus = toTitleCase(task.status.status);
+      
+      // Get comment from the taskComments map if available, otherwise use description
+      let comments = taskComments.get(task.id) || [];
+      if (comments.length === 0 && task.description && task.description.trim()) {
+        comments = [task.description.trim()];
+      } else if (comments.length === 0 && task.text_content && task.text_content.trim()) {
+        comments = [task.text_content.trim()];
+      }
+
+      const convertedTask: Task = {
+        id: task.id,
+        name: task.name,
+        assignee: task.assignees[0]?.username,
+        dueDate: task.due_date,
+        timeRemaining: calculateTimeRemaining(task.due_date),
+        priority: task.priority?.priority?.toLowerCase(),
+        status: normalizedStatus,
+        comments: comments.length > 0 ? comments : undefined,
+        subtasks: [],
+      };
+      taskMap.set(task.id, convertedTask);
+    }
+
+    for (const task of clickUpTasks) {
+      const convertedTask = taskMap.get(task.id)!;
+      
+      if (task.parent) {
+        const parentTask = taskMap.get(task.parent);
+        if (parentTask) {
+          parentTask.subtasks!.push(convertedTask);
+        } else {
+          topLevelTasks.push(convertedTask);
+        }
+      } else {
+        topLevelTasks.push(convertedTask);
+      }
+    }
+
+    return topLevelTasks.filter(task => !task.id.includes('.'));
+    
+  }, [clickUpTasks, taskComments]);
+
+  const tasksToDisplay = convertedTasks;
+
   const grouped = useMemo(() => {
     const map = new Map<string, Task[]>();
-    for (const t of TASKS) {
+    for (const t of tasksToDisplay) {
       const status = t.status ?? "Unknown";
       if (!map.has(status)) map.set(status, []);
       map.get(status)!.push(t);
     }
-    const preferredOrder = ["Todo", "In Progress", "Review", "Complete"];
+    
+    const preferredOrder = ["To Do", "In Progress", "Review", "Complete"]; 
+
     const sortedKeys = Array.from(map.keys()).sort((a, b) => {
       const ia = preferredOrder.indexOf(a);
       const ib = preferredOrder.indexOf(b);
@@ -202,14 +412,14 @@ export default function TaskPage() {
     const groupedSorted = sortedKeys.map((k) => {
       const arr = map.get(k)!.slice().map((t) => {
         const clone: Task = { ...t };
-        if (clone.subtasks) {
-          clone.subtasks = sortTasksByDueDateAndName(clone.subtasks).map((st) => {
-            const deep = { ...st };
-            if (deep.subtasks) deep.subtasks = sortTasksByDueDateAndName(deep.subtasks);
-            return deep;
-          });
-        }
-        return clone;
+        const sortNested = (task: Task): Task => {
+          const deep = { ...task };
+          if (deep.subtasks && deep.subtasks.length) {
+            deep.subtasks = sortTasksByDueDateAndName(deep.subtasks).map(sortNested);
+          }
+          return deep;
+        };
+        return sortNested(clone);
       });
       arr.sort((x, y) => {
         if (x.dueDate && y.dueDate) {
@@ -222,7 +432,7 @@ export default function TaskPage() {
       return [k, arr] as [string, Task[]];
     });
     return groupedSorted;
-  }, []);
+  }, [tasksToDisplay]);
 
   const renderTaskRows = (task: Task, depth = 0): React.ReactNode => {
     const hasSub = !!(task.subtasks && task.subtasks.length);
@@ -236,12 +446,11 @@ export default function TaskPage() {
         <tr
           style={{
             borderTop: "1px solid #f3f4f6",
-            background: depth % 2 === 1 ? "#ffffff" : "#ffffff",
+            background: depth % 2 === 1 ? "#fafafb" : "#ffffff",
             transition: "background .12s ease",
           }}
           className="task-row"
         >
-          {/* NAME column: collapse icon + task name (avatar removed from here) */}
           <td
             style={{
               padding: "10px 12px",
@@ -270,7 +479,9 @@ export default function TaskPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>{task.name}</div>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>{task.comments ?? ""}</div>
+                  {task.comments && task.comments.length > 0 && (
+                    <div style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>{task.comments[0]}</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -278,14 +489,25 @@ export default function TaskPage() {
 
           <td style={{ padding: "10px 12px", width: COL_WIDTHS.assignee, verticalAlign: "middle" }}>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>                
-                <Avatar name={task.assignee} />
-              </div>
+              <Avatar name={task.assignee} />
+              <div style={{ fontSize: 13, color: "#374151" }}>{task.assignee}</div>
             </div>
           </td>
 
           <td style={{ padding: "10px 12px", width: COL_WIDTHS.dueDate, verticalAlign: "middle" }}>
             <div style={{ fontSize: 13, color: task.dueDate ? "#111827" : "#9ca3af" }}>{formatDate(task.dueDate)}</div>
+          </td>
+
+          <td style={{ padding: "10px 12px", width: COL_WIDTHS.timeRemaining, verticalAlign: "middle" }}>
+            <div 
+              style={{ 
+                fontSize: 12, 
+                color: task.timeRemaining?.includes('overdue') ? "#dc2626" : task.timeRemaining === "Due today" ? "#ff7a00" : task.timeRemaining?.includes("h") && !task.timeRemaining.includes("d") ? "#d20000ff" : "#6b7280",
+                fontWeight: task.timeRemaining?.includes('overdue') || task.timeRemaining === "Due today" ? 600 : 400
+              }}
+            >
+              {task.timeRemaining || "-"}
+            </div>
           </td>
 
           <td style={{ padding: "10px 12px", width: COL_WIDTHS.priority, verticalAlign: "middle" }}>
@@ -297,12 +519,12 @@ export default function TaskPage() {
                 display: "inline-block",
                 minWidth: 48,
                 textAlign: "center",
-                background: (task.priority === "High" && "#fff1f2") || (task.priority === "Low" && "#f0fdf4") || "#f3f4f6",
-                color: task.priority === "High" ? "#b91c1c" : task.priority === "Low" ? "#059669" : "#374151",
+                background: (task.priority === "urgent" && "#f1f1f1ff") || (task.priority === "high" && "#fff1f2") || (task.priority === "low" && "#f0fdf4") || "#f3f4f6",
+                color: task.priority === "urgent" ? "#d96500ff" : task.priority === "high" ? "#b91c1c" : task.priority === "low" ? "#059669" : "#374151",
                 fontWeight: 600,
               }}
             >
-              {task.priority ?? "—"}
+              {task.priority ? toTitleCase(task.priority) : "—"}
             </div>
           </td>
 
@@ -325,8 +547,16 @@ export default function TaskPage() {
             </div>
           </td>
 
-          <td style={{ padding: "10px 12px", verticalAlign: "middle" }}>
-            <div style={{ fontSize: 13, color: "#6b7280" }}>{task.comments ?? "-"}</div>
+          <td style={{ padding: "10px 12px", width: COL_WIDTHS.comments, verticalAlign: "middle", paddingRight: "30px", paddingLeft: "0px"}}>
+            {task.comments && task.comments.length > 0 ? (
+              <ul style={{ margin: 0, paddingLeft: 0, fontSize: 13, color: "#6b7280" }}>
+                {task.comments.map((comment, idx) => (
+                  <li key={idx} style={{ marginBottom: 4 }}>{comment}</li>
+                ))}
+              </ul>
+            ) : (
+              <div style={{ fontSize: 13, color: "#9ca3af" }}>-</div>
+            )}
           </td>
         </tr>
 
@@ -342,6 +572,38 @@ export default function TaskPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <h1 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>Tasks</h1>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {!apiToken && (
+            <input
+              type="password"
+              placeholder="Enter ClickUp API Token"
+              value={apiToken}
+              onChange={(e) => setApiToken(e.target.value)}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: "1px solid #d1d5db",
+                fontSize: 14,
+                minWidth: 250
+              }}
+            />
+          )}
+          {teams.length > 0 && (
+            <select
+              value={selectedTeamId}
+              onChange={(e) => setSelectedTeamId(e.target.value)}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: "1px solid #d1d5db",
+                fontSize: 14,
+              }}
+            >
+              <option value="">Select Team</option>
+              {teams.map(team => (
+                <option key={team.id} value={team.id}>{team.name}</option>
+              ))}
+            </select>
+          )}
           <button
             style={{
               padding: "8px 12px",
@@ -350,6 +612,7 @@ export default function TaskPage() {
               border: "1px solid transparent",
               color: "#6b46ff",
               fontWeight: 700,
+              cursor: "pointer"
             }}
           >
             Filters
@@ -357,54 +620,81 @@ export default function TaskPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gap: 12 }}>
-        {grouped.map(([status, tasks]) => {
-          const total = countWithSubtasks(tasks);
-          return (
-            <section
-              key={status}
-              style={{
-                background: "white",
-                borderRadius: 10,
-                padding: 0,
-                boxShadow: "0 6px 18px rgba(15, 23, 42, 0.06)",
-                overflow: "hidden",
-                border: "1px solid rgba(15,23,42,0.04)",
-              }}
-            >
-              <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{status}</div>
-                  <div style={{ fontSize: 13, color: "#6b7280" }}>
-                    {tasks.length} top-level • {total} total
+      {error && (
+        <div style={{ 
+          padding: 12, 
+          background: "#fef2f2", 
+          border: "1px solid #fecaca", 
+          borderRadius: 8, 
+          color: "#dc2626",
+          marginBottom: 18 
+        }}>
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ textAlign: "center", padding: 40, color: "#6b7280" }}>
+          Loading tasks...
+        </div>
+      )}
+
+      {!loading && tasksToDisplay.length === 0 && apiToken && selectedTeamId && (
+        <div style={{ textAlign: "center", padding: 40, color: "#6b7280" }}>
+          No tasks found for this team.
+        </div>
+      )}
+
+      {!loading && (
+        <div style={{ display: "grid", gap: 12 }}>
+          {grouped.map(([status, tasks]) => {
+            const total = countWithSubtasks(tasks);
+            return (
+              <section
+                key={status}
+                style={{
+                  background: "white",
+                  borderRadius: 10,
+                  padding: 0,
+                  boxShadow: "0 6px 18px rgba(15, 23, 42, 0.06)",
+                  overflow: "hidden",
+                  border: "1px solid rgba(15,23,42,0.04)",
+                }}
+              >
+                <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{status}</div>
+                    <div style={{ fontSize: 13, color: "#6b7280" }}>
+                      {tasks.length} top-level • {total} total
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-                <thead>
-                  <tr style={{ textAlign: "left", fontSize: 13, color: "#6b7280", borderTop: "1px solid #f3f4f6" }}>
-                    {/* Name header now includes spacer so it lines up with the actual row names */}
-                    <th style={{ padding: "10px 12px", width: COL_WIDTHS.nameCalc }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 20 }} /> {/* spacer matching collapse icon */}
-                        <div>Name</div>
-                      </div>
-                    </th>
+                <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+                  <thead>
+                    <tr style={{ textAlign: "left", fontSize: 13, color: "#6b7280", borderTop: "1px solid #f3f4f6" }}>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.nameCalc }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ width: 20 }} />
+                          <div>Name</div>
+                        </div>
+                      </th>
 
-                    <th style={{ padding: "10px 12px", width: COL_WIDTHS.assignee }}>Assignee</th>
-                    <th style={{ padding: "10px 12px", width: COL_WIDTHS.dueDate }}>Due</th>
-                    <th style={{ padding: "10px 12px", width: COL_WIDTHS.priority }}>Priority</th>
-                    <th style={{ padding: "10px 12px", width: COL_WIDTHS.status }}>Status</th>
-                    <th style={{ padding: "10px 12px" }}>Comments</th>
-                  </tr>
-                </thead>
-                <tbody>{tasks.map((t) => <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>)}</tbody>
-              </table>
-            </section>
-          );
-        })}
-      </div>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.assignee }}>Assignee</th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.dueDate }}>Due</th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.timeRemaining }}>Time Remaining</th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.priority }}>Priority</th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.status }}>Status</th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.comments, paddingLeft: "0px"}}>Comments</th>
+                    </tr>
+                  </thead>
+                  <tbody>{tasks.map((t) => <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>)}</tbody>
+                </table>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
