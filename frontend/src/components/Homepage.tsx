@@ -192,83 +192,6 @@ type Task = {
   subtasks?: Task[];
 };
 
-const TASKS: Task[] = [
-  {
-    id: "1",
-    name: "Design homepage",
-    assignee: "Edward Hawkson",
-    dueDate: "2025-09-25",
-    status: "In Progress",
-    comments: ["Create responsive component"],
-    subtasks: [
-      {
-        id: "1.1",
-        name: "Wireframe header",
-        assignee: "Edward",
-        dueDate: "2025-09-22",
-        status: "Complete",
-        comments: ["Logo and nav layout"],
-      },
-      {
-        id: "1.2",
-        name: "Responsive grid",
-        assignee: "Ian",
-        dueDate: "2025-09-24",
-        status: "In Progress",
-        comments:["Mobile + tablet breakpoints"],
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: "Implement tasks API integration",
-    status: "Todo",
-    assignee: "Ian",
-    dueDate: "2025-10-01",
-    comments: ["Wire up ClickUp API to fetch tasks"],
-    subtasks: [
-      {
-        id: "2.1",
-        name: "Auth & tokens",
-        status: "Todo",
-        assignee: "Ian",
-        dueDate: "2025-09-30",
-      },
-    ],
-  },
-  {
-    id: "3",
-    name: "Create Docker Compose File",
-    status: "Complete",
-    assignee: "Khang",
-    dueDate: "2025-09-28",
-  },
-  {
-    id: "4",
-    name: "Refining Graph UI",
-    status: "In Progress",
-    assignee: "Freeman",
-    dueDate: "2025-09-28",
-    comments: ["Use Figma to improve the look of the task dependency graph"],
-    subtasks: [
-      {
-        id: "4.1",
-        name: "Add hover states",
-        status: "In Progress",
-        assignee: "Freeman",
-        dueDate: "2025-09-27",
-      },
-      {
-        id: "4.2",
-        name: "Accessibility audit",
-        status: "Todo",
-        assignee: "Khang",
-        dueDate: "2025-10-02",
-      },
-    ],
-  },
-];
-
 function formatDate(d?: string) {
   if (!d) return "-";
   try {
@@ -463,7 +386,7 @@ export default function TaskPage() {
     
   }, [clickUpTasks, taskComments]);
 
-  const tasksToDisplay = convertedTasks.length > 0 ? convertedTasks : TASKS;
+  const tasksToDisplay = convertedTasks;
 
   const grouped = useMemo(() => {
     const map = new Map<string, Task[]>();
