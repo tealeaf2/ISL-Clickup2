@@ -317,10 +317,8 @@ function toTitleCase(str: string): string {
   }).join(' ');
 }
 
-const DEFAULT_API_TOKEN = 'pk_162298770_TTFOD6EK7IPQ39DI7OGZTT78PQTCBGC4';
-
 export default function TaskPage() {
-  const [apiToken, setApiToken] = useState<string>(DEFAULT_API_TOKEN);
+  const [apiToken, setApiToken] = useState<string>(import.meta.env.VITE_CLICKUP_API_TOKEN ?? '');
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
