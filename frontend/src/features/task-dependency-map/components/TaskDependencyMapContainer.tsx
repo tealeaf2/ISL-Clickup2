@@ -129,7 +129,6 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
         status: status,
         priority: priority,
         parentId: clickUpTask.parent || null,
-        depends: clickUpTask.dependencies || [],
         lastUpdated: clickUpTask.date_updated
       };
     });
@@ -173,20 +172,6 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
   const laneAssignment: Record<string, number> = {};
   let currentLane = 0;
   
-  // Helper function to count dependencies for a task
-  const countDependencies = (task: Task): number => {
-    return task.depends ? task.depends.length : 0;
-  };
-  
-  // Helper function to sort children by independence (fewer dependencies first)
-  const sortByIndependence = (children: Task[]): Task[] => {
-    return children.sort((a, b) => {
-      const depsA = countDependencies(a);
-      const depsB = countDependencies(b);
-      return depsA - depsB; // Fewer dependencies first
-    });
-  };
-  
   // Get unique owners and sort them
   const uniqueOwners = Array.from(new Set((tasks || []).map(task => task.owner))).sort();
   
@@ -194,32 +179,26 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
   uniqueOwners.forEach(owner => {
     const ownerTasks = (tasks || []).filter(task => task.owner === owner);
     
-    // Separate independent tasks (no parent) from dependent tasks (have parent)
-    const independentTasks = ownerTasks.filter(task => !task.parentId);
-    const dependentTasks = ownerTasks.filter(task => task.parentId);
+    // Separate parent tasks (no parent) from child tasks (have parent)
+    const parentTasks = ownerTasks.filter(task => !task.parentId);
+    const childTasks = ownerTasks.filter(task => task.parentId);
     
-    // Sort independent tasks by dependencies (most independent first)
-    const sortedIndependentTasks = sortByIndependence(independentTasks);
-    
-    // Assign lanes to independent tasks first
-    sortedIndependentTasks.forEach(task => {
+    // Assign lanes to parent tasks first
+    parentTasks.forEach(task => {
       laneAssignment[task.id] = currentLane;
       currentLane++;
     });
     
-    // Group dependent tasks by parent
-    const dependentByParent = dependentTasks.reduce((acc, child) => {
-      if (!acc[child.parentId]) acc[child.parentId] = [];
-      acc[child.parentId].push(child);
+    // Group child tasks by parent
+    const childrenByParent = childTasks.reduce((acc, child) => {
+      if (!acc[child.parentId!]) acc[child.parentId!] = [];
+      acc[child.parentId!].push(child);
       return acc;
     }, {} as Record<string, Task[]>);
     
-    // Assign lanes to dependent tasks, organized by parent
-    Object.entries(dependentByParent).forEach(([parentId, children]) => {
-      // Sort children by independence (most independent child first)
-      const sortedChildren = sortByIndependence(children);
-      
-      sortedChildren.forEach(child => {
+    // Assign lanes to child tasks, organized by parent
+    Object.entries(childrenByParent).forEach(([parentId, children]) => {
+      children.forEach(child => {
         laneAssignment[child.id] = currentLane;
         currentLane++;
       });
@@ -291,8 +270,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     start: 0,
     duration: 1,
     lane: 0,
-    parentId: '',
-    dependsText: ''
+    parentId: ''
   });
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
 
@@ -309,8 +287,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
         start: task.start,
         duration: task.duration,
         lane: task.lane,
-        parentId: task.parentId || '',
-        dependsText: task.depends ? task.depends.join(', ') : ''
+        parentId: task.parentId || ''
       });
     }
   }, [selectedId, tasksById, setDraft]);
@@ -336,8 +313,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
         start: 0,
         duration: 1,
         lane: 0,
-        parentId: '',
-        dependsText: ''
+        parentId: ''
       });
     }
   }, [showAddTaskModal, tasks]);
@@ -459,8 +435,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
         const updatedTasks = prevTasks.map(task =>
           task.id === selectedId ? { 
           ...task,
-            ...draft,
-            depends: draft.dependsText ? draft.dependsText.split(',').map(id => id.trim()).filter(id => id) : []
+            ...draft
         } : task
       );
       
@@ -494,8 +469,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
       start: 0,
       duration: 1,
       lane: 0,
-      parentId: '',
-      dependsText: ''
+      parentId: ''
     });
   }, []);
 

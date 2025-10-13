@@ -5,7 +5,7 @@ import { LAYOUT_CONSTANTS, STATUS_COLORS } from '../../../shared/constants';
 import { edgePath } from '../../../shared/utils';
 
 /**
- * Canvas component for rendering the dependency map
+ * Canvas component for rendering the parent-child hierarchy map
  */
 const DependencyCanvas = ({
   tasks,
@@ -54,7 +54,9 @@ const DependencyCanvas = ({
   for (let l = 0; l <= actualMaxLane; l++) {
     // Find a task in this lane to get owner info
     const taskInLane = tasks.find(task => task.lane === l);
-    const owner = taskInLane ? taskInLane.owner : '';
+    // Inherit previous non-empty owner for spacer lanes to avoid splitting sections
+    const previousOwner = laneLines.length > 0 ? laneLines[laneLines.length - 1].owner : '';
+    const owner = taskInLane ? taskInLane.owner : previousOwner;
     
     console.log(`Creating lane ${l} with owner: ${owner}`);
     
@@ -88,8 +90,8 @@ const DependencyCanvas = ({
 
       {/* Pan & Zoom group */}
       <g transform={`translate(${pan.x}, ${pan.y}) scale(${scale})`}>
-        {/* Background */}
-        <rect x={0} y={0} width={contentWidth} height={contentHeight} fill="#f8fafc" />
+        {/* Background - extended to the left to show owner labels */}
+        <rect x={-120} y={0} width={contentWidth + 120} height={contentHeight} fill="#f8fafc" />
         
 
         {/* Vertical day grid + labels */}
@@ -127,7 +129,7 @@ const DependencyCanvas = ({
           return (
             <line
               key={`h-${lane}-${owner}`}
-              x1={PADDING - 60}
+              x1={-100}
               y1={y}
               x2={contentWidth - PADDING + 60}
               y2={y}
@@ -151,9 +153,9 @@ const DependencyCanvas = ({
           return (
             <text
               key={`lane-${lane}-${owner}`}
-              x={PADDING - 90}
+              x={PADDING - 20}
               y={y + LANE_HEIGHT / 2 + 4}
-              fontSize={12}
+              fontSize={13}
               fill={isParent ? "#1f2937" : isChild ? "#6b7280" : "#1f2937"}
               fontWeight={isParent ? "bold" : "normal"}
               textAnchor="end"
@@ -163,7 +165,7 @@ const DependencyCanvas = ({
           );
         })}
 
-        {/* Edges (behind bars) */}
+        {/* Parent-child edges (arrows from parents to children) */}
         {dependencies.map((dep, i) => (
           <path
             key={`e-${i}`}

@@ -8,7 +8,6 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   parentId: string | null;
-  depends: string[];
   lastUpdated?: string;
   rect?: TaskRect;
 }
@@ -45,7 +44,6 @@ export interface TaskDraft {
   duration: number;
   lane: number;
   parentId: string | null;
-  dependsText: string;
 }
 
 export interface TaskOptions {

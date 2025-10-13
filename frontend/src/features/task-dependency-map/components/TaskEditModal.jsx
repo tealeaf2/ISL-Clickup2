@@ -122,11 +122,6 @@ const TaskEditModal = ({
           value={draft?.parentId || ''}
           onChange={value => onDraftChange(draft => ({ ...draft, parentId: value }))}
         />
-        <InputRow
-          label="Depends (comma IDs)"
-          value={draft?.dependsText || ''}
-          onChange={value => onDraftChange(draft => ({ ...draft, dependsText: value }))}
-        />
 
         <div className="flex items-center justify-between pt-2">
           <button 

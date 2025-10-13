@@ -48,13 +48,13 @@ export const useTaskData = (initialTasks: Task[] = []) => {
     return Math.max(...taskArray.map(task => task.lane), 0);
   }, [tasks]);
 
-  // Dependencies list for edges
-  const dependencies = useMemo((): TaskDependency[] => {
+  // Parent-child relationships for edges (arrows from parent to child)
+  const parentChildEdges = useMemo((): TaskDependency[] => {
     const list: TaskDependency[] = [];
     (tasks || []).forEach(task => {
-      (task.depends || []).forEach(depId => {
-        list.push({ from: depId, to: task.id });
-      });
+      if (task.parentId) {
+        list.push({ from: task.parentId, to: task.id });
+      }
     });
     return list;
   }, [tasks]);
@@ -66,6 +66,6 @@ export const useTaskData = (initialTasks: Task[] = []) => {
     childrenOf,
     maxDay,
     maxLane,
-    dependencies
+    dependencies: parentChildEdges // Renamed for clarity: now contains parent-child edges
   };
 };

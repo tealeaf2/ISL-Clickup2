@@ -19,10 +19,6 @@ const AddTaskModal = ({
       return;
     }
 
-    const depends = (draft.dependsText || "").split(",")
-      .map(s => s.trim())
-      .filter(Boolean);
-
     const newTask = {
       id: draft.id,
       name: draft.name,
@@ -32,7 +28,6 @@ const AddTaskModal = ({
       duration: Math.max(1, Number(draft.duration) || 1),
       lane: Math.max(0, Number(draft.lane) || 0),
       parentId: draft.parentId || null,
-      depends,
     };
 
     onSave(newTask);
@@ -122,11 +117,6 @@ const AddTaskModal = ({
           label="Parent ID"
           value={draft?.parentId || ''}
           onChange={value => onDraftChange(draft => ({ ...draft, parentId: value }))}
-        />
-        <InputRow
-          label="Depends (comma IDs)"
-          value={draft?.dependsText || ''}
-          onChange={value => onDraftChange(draft => ({ ...draft, dependsText: value }))}
         />
 
         <div className="flex items-center justify-between pt-2">
