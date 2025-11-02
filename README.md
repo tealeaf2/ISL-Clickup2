@@ -30,7 +30,6 @@ This app allows visualization and management of task dependencies within ClickUp
 git clone https://github.com/tealeaf2/ISL-Clickup2.git
 ```
 
-2. Build and start your docker container
 
 ```sh
 docker compose up --build
