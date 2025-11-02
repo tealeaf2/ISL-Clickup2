@@ -1,7 +1,33 @@
+/**
+ * ErrorBoundary Component
+ * 
+ * A React error boundary component that catches JavaScript errors anywhere in
+ * the child component tree, logs those errors, and displays a fallback UI instead
+ * of the component tree that crashed.
+ * 
+ * Features:
+ * - Catches errors during rendering, in lifecycle methods, and in constructors
+ * - Displays user-friendly error message with recovery options
+ * - Shows detailed error information in development mode
+ * - Provides refresh and retry functionality
+ * 
+ * @fileoverview Error boundary component for catching and handling React errors
+ */
+
 import React from 'react';
 
 /**
  * Error boundary component to catch JavaScript errors anywhere in the child component tree
+ * 
+ * @class ErrorBoundary
+ * @extends {React.Component}
+ * 
+ * @property {React.ReactNode} children - Child components to wrap with error boundary
+ * 
+ * @example
+ * <ErrorBoundary>
+ *   <App />
+ * </ErrorBoundary>
  */
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -13,11 +39,25 @@ class ErrorBoundary extends React.Component {
     };
   }
 
+  /**
+   * Static method that updates state when an error is caught
+   * 
+   * @static
+   * @param {Error} error - The error that was thrown
+   * @returns {{hasError: boolean}} State update that triggers fallback UI
+   */
   static getDerivedStateFromError(error) {
     // Update state so the next render will show the fallback UI
     return { hasError: true };
   }
 
+  /**
+   * Lifecycle method called when an error is caught
+   * Logs the error and error info for debugging purposes
+   * 
+   * @param {Error} error - The error that was thrown
+   * @param {Object} errorInfo - Object containing component stack trace information
+   */
   componentDidCatch(error, errorInfo) {
     // Log the error to console and any error reporting service
     console.error('Error caught by boundary:', error, errorInfo);
@@ -28,6 +68,11 @@ class ErrorBoundary extends React.Component {
     });
   }
 
+  /**
+   * Renders the component tree or fallback UI if an error occurred
+   * 
+   * @returns {JSX.Element} Either the children (if no error) or error UI (if error caught)
+   */
   render() {
     if (this.state.hasError) {
       // Fallback UI

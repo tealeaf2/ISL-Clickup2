@@ -1,8 +1,24 @@
+/**
+ * ControlPanel Component
+ * 
+ * Top control bar that provides:
+ * - Display options checkboxes (parent blocking, auto-propagation)
+ * - Zoom controls (zoom in, zoom out, reset, fit to view)
+ * - Status indicators (propagation status, auto-update status)
+ * 
+ * @param {Object} props - Component props
+ * @param {Object} props.options - Current display/behavior options
+ * @param {Function} props.onOptionsChange - Callback when options change
+ * @param {Function} props.onZoomIn - Callback for zoom in button
+ * @param {Function} props.onZoomOut - Callback for zoom out button
+ * @param {Function} props.onReset - Callback for reset view button
+ * @param {Function} props.onFitToView - Callback for fit to view button
+ * @param {boolean} props.isPropagating - Whether status propagation is in progress
+ * @param {Function} props.onTriggerPropagation - Callback to trigger propagation
+ * @param {boolean} props.autoUpdateEnabled - Whether auto-update is enabled
+ */
 import React from 'react';
 
-/**
- * Control panel component for zoom and view controls
- */
 const ControlPanel = ({ 
   options, 
   onOptionsChange, 

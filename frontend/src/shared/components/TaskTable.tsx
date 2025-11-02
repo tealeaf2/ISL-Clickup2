@@ -1,14 +1,54 @@
+/**
+ * TaskTable Component
+ * 
+ * A comprehensive dashboard component that displays ClickUp tasks in an organized
+ * table/card layout. Features include:
+ * - Team selection dropdown
+ * - Task statistics (total, my tasks, completed, overdue)
+ * - Filtered task sections (my tasks, overdue tasks, all tasks)
+ * - Task refresh functionality
+ * - Loading and error states
+ * 
+ * This component serves as the main task management interface and can notify
+ * parent components when tasks are loaded via the onTasksUpdate callback.
+ * 
+ * @fileoverview Main dashboard component for displaying and managing ClickUp tasks
+ */
+
 import React, { useState, useEffect } from 'react';
 import { Clock, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
 import { useClickUp } from '../hooks/useClickUp';
 import { TaskCard } from './TaskCard';
 
+/**
+ * Props for TaskTable component
+ */
 interface TaskTableProps {
+  /** ClickUp API token for authentication */
   apiToken?: string;
+  /** User email to filter "my tasks" */
   userEmail?: string;
+  /** Callback function called when tasks are loaded/updated */
   onTasksUpdate?: (tasks: any[]) => void;
 }
 
+/**
+ * TaskTable component - Main dashboard for ClickUp tasks
+ * 
+ * Displays a comprehensive dashboard with team selection, task statistics,
+ * and filtered task lists. Automatically fetches teams and tasks, and can
+ * notify parent components via onTasksUpdate callback.
+ * 
+ * @param {TaskTableProps} props - Component props
+ * @returns {JSX.Element} A dashboard with task management interface
+ * 
+ * @example
+ * <TaskTable 
+ *   apiToken={token} 
+ *   userEmail="user@example.com"
+ *   onTasksUpdate={handleTasksUpdate}
+ * />
+ */
 export const TaskTable: React.FC<TaskTableProps> = ({ 
   apiToken = 'pk_162298770_TTFOD6EK7IPQ39DI7OGZTT78PQTCBGC4',
   userEmail = 'strugglingstudent090@gmail.com',
@@ -61,6 +101,9 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   const completedTasks = getTasksByStatus('complete');
   const overdueTasks = getOverdueTasks();
 
+  /**
+   * Handles the refresh button click to reload tasks for the selected team
+   */
   const handleRefresh = () => {
     if (selectedTeam) {
       fetchTasks(selectedTeam);

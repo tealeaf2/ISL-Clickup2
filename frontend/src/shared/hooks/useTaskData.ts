@@ -1,8 +1,40 @@
+/**
+ * useTaskData Hook
+ * 
+ * A custom React hook that manages task data and provides efficient computed
+ * values for task lookups, relationships, and bounds calculations.
+ * 
+ * Features:
+ * - Task state management with initialization support
+ * - Efficient task lookups by ID
+ * - Parent-child relationship mapping
+ * - Content bounds calculation (max day, max lane)
+ * - Dependency edge generation from parent-child relationships
+ * 
+ * @fileoverview Custom hook for task data management and derived computations
+ */
+
 import { useState, useMemo, useEffect } from 'react';
 import type { Task, TaskDependency } from '../types';
 
 /**
  * Custom hook for managing task data and derived computations
+ * 
+ * Manages task state and provides optimized lookups and computed values.
+ * Automatically updates when initialTasks changes.
+ * 
+ * @param {Task[]} [initialTasks=[]] - Initial array of tasks to manage
+ * @returns {Object} Object containing task data and computed values
+ * @returns {Task[]} tasks - Current array of tasks
+ * @returns {Function} setTasks - Function to update the tasks array
+ * @returns {Record<string, Task>} tasksById - Lookup map of tasks by ID
+ * @returns {Record<string, string[]>} childrenOf - Map of parent ID to array of child IDs
+ * @returns {number} maxDay - Maximum day value (start + duration) across all tasks
+ * @returns {number} maxLane - Maximum lane number across all tasks
+ * @returns {TaskDependency[]} dependencies - Array of parent-child dependency edges
+ * 
+ * @example
+ * const { tasks, tasksById, maxDay, dependencies } = useTaskData(initialTasks);
  */
 export const useTaskData = (initialTasks: Task[] = []) => {
   console.log('useTaskData called with initialTasks:', initialTasks?.length || 0);

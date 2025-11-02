@@ -1,13 +1,53 @@
+/**
+ * TaskCard Component
+ * 
+ * A card component that displays information about a ClickUp task in a visually
+ * appealing format. Shows task name, status, priority, due date, assignees, and
+ * a link to view the task in ClickUp.
+ * 
+ * Features:
+ * - Priority-based color coding
+ * - Status and assignee display
+ * - Due date formatting
+ * - Optional highlighting for emphasis
+ * - Direct link to task in ClickUp
+ * 
+ * @fileoverview Component for displaying ClickUp task information in card format
+ */
+
 import React from 'react';
 import { Calendar, User, CheckCircle } from 'lucide-react';
 import type { ClickUpTask, ClickUpPriority } from '../types';
 
+/**
+ * Props for TaskCard component
+ */
 interface TaskCardProps {
+  /** The ClickUp task object to display */
   task: ClickUpTask;
+  /** Whether to highlight this card (e.g., for user's tasks) */
   highlight?: boolean;
 }
 
+/**
+ * TaskCard component for displaying ClickUp task information
+ * 
+ * Renders a card with task details including name, status, priority, dates,
+ * assignees, and a link to view in ClickUp.
+ * 
+ * @param {TaskCardProps} props - Component props
+ * @returns {JSX.Element} A styled card displaying task information
+ * 
+ * @example
+ * <TaskCard task={clickUpTask} highlight={true} />
+ */
 export const TaskCard: React.FC<TaskCardProps> = ({ task, highlight = false }) => {
+  /**
+   * Gets the CSS color classes for a priority level
+   * 
+   * @param {ClickUpPriority|undefined} priority - The priority object or undefined
+   * @returns {string} Tailwind CSS classes for the priority color
+   */
   const getPriorityColor = (priority?: ClickUpPriority): string => {
     if (!priority) return 'text-gray-600 bg-gray-100';
     
@@ -20,6 +60,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, highlight = false }) =
     }
   };
 
+  /**
+   * Formats a date string or timestamp into a localized date string
+   * 
+   * @param {string|undefined} dateStr - Date string or timestamp, or undefined
+   * @returns {string} Formatted date string or 'No due date' if undefined
+   */
   const formatDate = (dateStr?: string): string => {
     if (!dateStr) return 'No due date';
     return new Date(parseInt(dateStr)).toLocaleDateString();

@@ -1,17 +1,32 @@
+/**
+ * TaskDetails Component
+ * 
+ * Modal that displays detailed information about a task when clicked.
+ * Shows task properties and blockers in read-only mode.
+ * Positioned near the click location for context.
+ * 
+ * @param {Object} props - Component props
+ * @param {Object} props.task - The task to display details for
+ * @param {Array} props.blockers - Array of tasks blocking this task
+ * @param {Function} props.onClose - Callback to close the modal
+ * @param {Object} props.position - Screen position {x, y} for modal placement
+ * @param {DOMRect|null} props.containerRect - Bounding rect of the container for positioning
+ * @param {Function} [props.onEdit] - TODO: Callback for editing the task (not yet implemented)
+ * @param {Function} [props.onStatusUpdate] - TODO: Callback for updating task status (not yet implemented)
+ */
 import React from 'react';
 import StatusBadge from '../../../shared/components/StatusBadge';
 import { daysSince } from '../../../shared/utils';
 
-/**
- * Task details modal component positioned next to the clicked task
- */
 const TaskDetails = ({ 
   task, 
   blockers, 
-  onClose, 
-  onEdit,
+  onClose,
   position = { x: 0, y: 0 },
-  containerRect = null
+  containerRect = null,
+  // TODO: Add these props when update functionality is implemented
+  onEdit = undefined,
+  onStatusUpdate = undefined
 }) => {
   if (!task) return null;
 
@@ -28,13 +43,13 @@ const TaskDetails = ({
       }}
     >
       <div className="flex items-center justify-between">
-        <div className="font-semibold">Task {task.id}</div>
+        <div className="font-semibold text-base">{task.name}</div>
         <button className="text-xs underline hover:text-gray-600" onClick={onClose}>
           Close
         </button>
       </div>
       
-      <div className="text-sm text-gray-600">{task.name}</div>
+      <div className="text-xs text-gray-500">Task ID: {task.id}</div>
       
       <div className="flex items-center gap-2">
         <StatusBadge status={task.status} />
@@ -91,22 +106,52 @@ const TaskDetails = ({
         )}
       </div>
 
-      <div className="flex items-center gap-2 pt-1">
-        <button 
-          className="px-3 py-1 rounded-lg border shadow-sm" 
-          onClick={() => {
-            console.log('Edit Task button clicked');
-            onEdit();
-          }}
-        >
-          Edit Task
-        </button>
-        <button 
-          className="px-3 py-1 rounded-lg border shadow-sm" 
-          onClick={onClose}
-        >
-          Done
-        </button>
+      {/* TODO: Add update functionality UI */}
+      {/* 
+        These buttons will be enabled once update functionality is implemented.
+        They should call update handlers passed as props to update the task in ClickUp.
+      */}
+      <div className="pt-2 border-t border-gray-200">
+        <div className="text-xs text-gray-400 mb-2 italic">
+          Update functionality coming soon
+        </div>
+        <div className="flex items-center justify-end gap-2">
+          {/* TODO: Add edit button - opens inline editing or edit modal */}
+          <button 
+            className="px-3 py-1 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 text-xs disabled:opacity-50 disabled:cursor-not-allowed" 
+            disabled
+            onClick={() => {
+              // TODO: Implement edit handler
+              // Should open an edit form/modal or enable inline editing
+              // onEdit?.(task);
+            }}
+            title="Edit functionality not yet implemented"
+          >
+            Edit
+          </button>
+          
+          {/* TODO: Add quick status update dropdown */}
+          <select
+            className="px-2 py-1 rounded-lg border border-gray-300 shadow-sm text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled
+            value={task.status}
+            onChange={(e) => {
+              // TODO: Implement status update handler
+              // onStatusUpdate?.(task.id, e.target.value);
+            }}
+            title="Status update not yet implemented"
+          >
+            <option value={task.status}>{task.status}</option>
+            {/* TODO: Populate with available statuses from ClickUp workspace */}
+          </select>
+          
+          <button 
+            className="px-3 py-1 rounded-lg border shadow-sm hover:bg-gray-50 text-xs" 
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );

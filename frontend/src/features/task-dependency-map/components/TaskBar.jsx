@@ -1,8 +1,37 @@
-import React, { useRef, useEffect } from 'react';
+/**
+ * TaskBar Component
+ * 
+ * Renders a single task as a bar in the dependency graph timeline.
+ * Each task bar displays:
+ * - Task name with visual hierarchy indicators (parent vs child)
+ * - Color coding by status (todo, in-progress, blocked)
+ * - Priority border styling
+ * - Blocker badge (if task has blockers)
+ * - Selection ring (when task is selected)
+ * 
+ * Handles pointer events for:
+ * - Left click: Select task and open detail modal
+ * 
+ * TODO: Future drag functionality will trigger date updates
+ * When drag-to-update is implemented, this component will need:
+ * - onDragStart, onDrag, onDragEnd handlers
+ * - Visual feedback during dragging
+ * - Call handleTaskDateUpdate when drag completes
+ * 
+ * @param {Object} props - Component props
+ * @param {Object} props.task - Task object to render
+ * @param {boolean} props.isSelected - Whether this task is currently selected
+ * @param {Array} props.blockers - Array of tasks blocking this task
+ * @param {Function} props.onClick - Callback when task is clicked
+ */
+import React from 'react';
 import { STATUS_COLORS, PRIORITY_COLORS, PRIORITY_BORDERS } from '../../../shared/constants';
 
 /**
- * Helper functions to extract priority border properties
+ * Extracts stroke color from priority border CSS string
+ * 
+ * @param {string} priority - Priority level
+ * @returns {string} Hex color code for the stroke
  */
 const getPriorityStrokeColor = (priority) => {
   if (!PRIORITY_BORDERS[priority]) return "#374151";
@@ -11,6 +40,12 @@ const getPriorityStrokeColor = (priority) => {
   return strokePart ? strokePart.split(': ')[1] : "#374151";
 };
 
+/**
+ * Extracts stroke width from priority border CSS string
+ * 
+ * @param {string} priority - Priority level
+ * @returns {number} Stroke width in pixels
+ */
 const getPriorityStrokeWidth = (priority) => {
   if (!PRIORITY_BORDERS[priority]) return 1;
   const parts = PRIORITY_BORDERS[priority].split('; ');
@@ -18,88 +53,37 @@ const getPriorityStrokeWidth = (priority) => {
   return widthPart ? parseInt(widthPart.split(': ')[1]) : 1;
 };
 
-/**
- * Task bar component representing a single task in the dependency map
- */
 const TaskBar = ({
   task,
   isSelected,
   blockers,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp
+  onClick
 }) => {
   const rect = task.rect;
   
-  // Ensure rect has valid values
+  // Ensure rect has valid values - prevents rendering errors with invalid data
   const safeRect = {
     x: isNaN(rect?.x) ? 0 : rect?.x || 0,
     y: isNaN(rect?.y) ? 0 : rect?.y || 0,
-    w: isNaN(rect?.w) ? 100 : rect?.w || 100,
-    h: isNaN(rect?.h) ? 24 : rect?.h || 24
+    w: isNaN(rect?.w) ? 100 : rect?.w || 100,  // Default width if invalid
+    h: isNaN(rect?.h) ? 24 : rect?.h || 24      // Default height if invalid
   };
   
-  const dragStartedRef = useRef(false);
-  const startPosRef = useRef({ x: 0, y: 0 });
-  
-  
-  const handlePointerDown = (e) => {
-    // Only handle right-click for dragging (button 2)
-    if (e.button !== 2) return;
-    
-    // Reset drag tracking
-    dragStartedRef.current = false;
-    startPosRef.current = { x: e.clientX, y: e.clientY };
-    
-    // Capture pointer for this element
-    e.currentTarget.setPointerCapture(e.pointerId);
-    
-    onPointerDown(e, task);
-  };
-  
-  const handlePointerMove = (e) => {
-    // Only handle move events if we have pointer capture
-    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-    
-    // Check if we've moved enough to consider this a drag
-    const deltaX = Math.abs(e.clientX - startPosRef.current.x);
-    const deltaY = Math.abs(e.clientY - startPosRef.current.y);
-    const dragThreshold = 3; // pixels
-    
-    if (deltaX > dragThreshold || deltaY > dragThreshold) {
-      dragStartedRef.current = true;
-    }
-    
-    if (onPointerMove) {
-      onPointerMove(e);
-    }
-  };
-  
-  const handlePointerUp = (e) => {
-    // Release pointer capture
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-    
-    // Reset drag state
-    dragStartedRef.current = false;
-    
-    if (onPointerUp) {
-      onPointerUp(e);
-    }
-  };
-
-  const handleLeftClick = (e) => {
+  /**
+   * Handles click - selects task and opens edit modal
+   * Calculates click position for proper modal positioning
+   */
+  const handleClick = (e) => {
     e.stopPropagation();
     
-    // Calculate click position relative to the container
-    const containerRect = e.target.closest('svg').getBoundingClientRect();
-    const clickX = e.clientX - containerRect.left;
-    const clickY = e.clientY - containerRect.top;
+    // Calculate click position in screen coordinates (for modal positioning)
+    // Modal positioning uses screen coordinates, not SVG-relative coordinates
+    const clickX = e.clientX;
+    const clickY = e.clientY;
     
-    // Call the selection handler directly
-    if (onPointerDown) {
-      onPointerDown(e, task, { x: clickX, y: clickY });
+    // Pass task and click position to parent handler
+    if (onClick) {
+      onClick(e, task, { x: clickX, y: clickY });
     }
   };
 
@@ -108,11 +92,7 @@ const TaskBar = ({
     <g
       key={task.id}
       data-taskid={task.id}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onClick={handleLeftClick}
+      onClick={handleClick}
       className="cursor-pointer task-bar"
     >
       {/* Task bar */}
@@ -157,16 +137,16 @@ const TaskBar = ({
       {blockers.length > 0 && (
         <g>
           <rect
-            x={rect.x - 36}
-            y={rect.y - 2}
+            x={safeRect.x - 36}
+            y={safeRect.y - 2}
             width={32}
-            height={rect.h + 4}
+            height={safeRect.h + 4}
             rx={6}
             fill="#ef4444"
           />
           <text
-            x={rect.x - 20}
-            y={rect.y + rect.h / 2 + 4}
+            x={safeRect.x - 20}
+            y={safeRect.y + safeRect.h / 2 + 4}
             fontSize={12}
             fill="#ffffff"
             textAnchor="middle"
@@ -179,10 +159,10 @@ const TaskBar = ({
       {/* Selection ring */}
       {isSelected && (
         <rect
-          x={rect.x - 3}
-          y={rect.y - 3}
-          width={rect.w + 6}
-          height={rect.h + 6}
+          x={safeRect.x - 3}
+          y={safeRect.y - 3}
+          width={safeRect.w + 6}
+          height={safeRect.h + 6}
           rx={10}
           fill="none"
           stroke="#111827"

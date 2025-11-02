@@ -1,5 +1,26 @@
+/**
+ * DependencyGraphPlaceholder Component
+ * 
+ * A simple placeholder component that displays a message indicating that
+ * the dependency graph visualization feature is a placeholder and can be
+ * integrated from the Dependency-Graph project.
+ * 
+ * This component provides information about what features would be available
+ * if the full dependency graph functionality were integrated.
+ * 
+ * @fileoverview Placeholder component for dependency graph feature
+ */
+
 import React from 'react';
 
+/**
+ * DependencyGraphPlaceholder component - Placeholder for dependency graph
+ * 
+ * Displays a placeholder message with information about potential
+ * dependency graph features.
+ * 
+ * @returns {JSX.Element} A placeholder message component
+ */
 const DependencyGraphPlaceholder: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">

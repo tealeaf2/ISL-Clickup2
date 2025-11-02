@@ -1,5 +1,26 @@
+/**
+ * DependencyGraph Component
+ * 
+ * A placeholder/informational component that displays information about
+ * the task dependency graph feature. This component shows available features
+ * and integration status, serving as a landing page or feature overview.
+ * 
+ * Note: This is a placeholder component. The actual dependency graph
+ * functionality is implemented in the TaskDependencyMap component.
+ * 
+ * @fileoverview Placeholder component for dependency graph feature information
+ */
+
 import React from 'react';
 
+/**
+ * DependencyGraph component - Feature information placeholder
+ * 
+ * Displays information about the dependency graph feature including
+ * available features and integration status.
+ * 
+ * @returns {JSX.Element} An informational page about the dependency graph feature
+ */
 const DependencyGraph: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">

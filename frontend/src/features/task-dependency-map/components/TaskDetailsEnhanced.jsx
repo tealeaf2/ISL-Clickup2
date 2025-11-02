@@ -1,10 +1,29 @@
+/**
+ * TaskDetailsEnhanced Component
+ * 
+ * Enhanced version of TaskDetails with additional features:
+ * - Tabbed interface (details, risks, time)
+ * - Risk analysis and recommendations
+ * - Time tracking and logging
+ * - Better positioning logic
+ * 
+ * This is an alternative/experimental version with more features than TaskDetails.
+ * Currently may not be actively used in the main flow.
+ * 
+ * @param {Object} props - Component props
+ * @param {Object} props.task - The task to display details for
+ * @param {Array} props.blockers - Array of tasks blocking this task
+ * @param {Function} props.onClose - Callback to close the modal
+ * @param {Function} props.onEdit - Callback to open edit modal
+ * @param {Object} props.position - Screen position {x, y} for modal placement
+ * @param {DOMRect|null} props.containerRect - Bounding rect of the container
+ * @param {Array} props.timeEntries - Array of time tracking entries
+ * @param {Object|null} props.riskAnalysis - Risk analysis data for the task
+ */
 import React, { useState } from 'react';
 import StatusBadge from '../../../shared/components/StatusBadge';
 import { daysSince } from '../../../shared/utils';
 
-/**
- * Enhanced task details modal with dependency analysis and time tracking
- */
 const TaskDetailsEnhanced = ({ 
   task, 
   blockers, 
