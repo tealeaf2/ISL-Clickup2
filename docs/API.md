@@ -189,8 +189,8 @@ Located in `TaskDependencyMapContainer.tsx` - `convertClickUpTasksToGraphTasks()
    {
      'to do': 'todo',
      'in progress': 'in-progress',
-     'complete': 'done',
      'blocked': 'blocked'
+     // Note: 'complete' status not mapped - ClickUp removes completed tasks
    }
    ```
 
@@ -206,12 +206,17 @@ Located in `TaskDependencyMapContainer.tsx` - `convertClickUpTasksToGraphTasks()
    ```
 
 3. **Date Calculation:**
-   - If `due_date` exists: `startDay = (dueDate - today) / (1000 * 60 * 60 * 24)`
-   - If no `due_date`: Tasks are spread across 7 days based on index
+   - **Primary**: Uses `start_date` from API if available (preferred)
+   - **Fallback**: Uses `due_date` if no `start_date`
+   - **Last resort**: Spreads tasks across days based on index if no dates
+   - `startDay = (taskDate - today) / (1000 * 60 * 60 * 24)` (can be negative for overdue)
+   - Dates normalized to midnight for consistent calculations
 
 4. **Duration Calculation:**
-   - If `start_date` exists: `duration = (dueDate - startDate) / (1000 * 60 * 60 * 24) + 1`
-   - Default: 1 day
+   - **Primary**: Calculated from `start_date` to `due_date` (inclusive)
+   - `duration = Math.floor((dueDate - startDate) / (1000 * 60 * 60 * 24)) + 1`
+   - Default: 1 day if no `due_date` or if `due_date < start_date`
+   - Duration used to calculate task rectangle width (duration * DAY_WIDTH pixels)
 
 5. **Owner Extraction:**
    - Uses first assignee's `username`
@@ -251,19 +256,50 @@ The current implementation doesn't include rate limiting logic. For production u
 - Adding exponential backoff for retries
 - Caching responses to reduce API calls
 
+### Write Operations (Placeholder - Not Yet Implemented)
+
+The following functions exist as placeholders with TODO comments but are not yet implemented:
+
+1. **updateTask(taskId, updates)**: Update task properties
+   - Parameters: `taskId`, `updates` object (name, status, dates, assignees, priority, description)
+   - Returns: Promise<ClickUpTask>
+   - Status: 🚧 Placeholder function exists, needs API implementation
+
+2. **updateTaskDates(taskId, startDate, dueDate)**: Update task dates
+   - Convenience function for date updates
+   - Status: 🚧 Placeholder function exists, needs API implementation
+
+3. **updateTaskStatus(taskId, status)**: Update task status
+   - Convenience function for status updates
+   - Status: 🚧 Placeholder function exists, needs API implementation
+
+4. **batchUpdateTasks(taskUpdates)**: Batch update multiple tasks
+   - Parameters: Array of `{taskId, updates}` objects
+   - Returns: Promise<ClickUpTask[]>
+   - Status: 🚧 Placeholder function exists, needs API implementation
+
+**API Endpoints Needed (ClickUp API v2):**
+- `PUT /task/{task_id}` - Update task
+- `POST /list/{list_id}/task` - Create task
+- `DELETE /task/{task_id}` - Delete task
+
+### Current Limitations
+
+1. **Read-Only Mode**: Application only reads from ClickUp, cannot modify tasks yet
+2. **No Write Operations**: All update functions are placeholders with TODO comments
+3. **Date Format Handling**: Supports both number (timestamp) and string formats from API
+4. **No Status Propagation**: Status propagation logic disabled in read-only mode
+
 ### Future Enhancements
 
-Potential API improvements:
-
-1. **Write Operations**: Currently only reads from ClickUp. Future support for:
-   - Creating tasks
-   - Updating tasks
-   - Deleting tasks
-   - Managing dependencies
+1. **Implement Write Operations**: Connect placeholder functions to ClickUp API
+   - Complete updateTask, updateTaskDates, updateTaskStatus implementations
+   - Add createTask functionality
+   - Add deleteTask functionality
 
 2. **Webhooks**: Real-time updates when tasks change in ClickUp
 
-3. **Batch Operations**: Efficiently fetch multiple resources
+3. **Batch Operations**: Efficiently update multiple tasks
 
 4. **Filtering**: Support for ClickUp's advanced filtering options
 

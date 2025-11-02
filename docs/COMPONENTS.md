@@ -179,19 +179,19 @@ interface Props {
 ```
 
 **Key Responsibilities:**
-1. Converts ClickUp tasks to graph format
-2. Manages task state and relationships
-3. Handles CRUD operations (Create, Read, Update, Delete)
-4. Manages pan/zoom state
-5. Processes status propagation
-6. Handles modal states
+1. Converts ClickUp tasks to graph format using actual API dates
+2. Manages task state and relationships (read-only)
+3. Manages pan/zoom state
+4. Handles modal states (TaskDetails for viewing)
+5. **Note**: CRUD operations removed - application is read-only
+6. **Note**: Status propagation disabled - tasks displayed as-is from API
 
 **State Managed:**
 - Task data and relationships
-- Selected task and editing state
+- Selected task and viewing state
 - Pan and zoom transforms
-- Modal visibility
-- Task draft for editing
+- Modal visibility (TaskDetails modal)
+- **Note**: Task draft removed - read-only mode
 
 **Custom Hooks Used:**
 - `useTaskData` - Task data structure
@@ -200,11 +200,10 @@ interface Props {
 - `useTaskRelationships` - Relationship logic
 
 **Key Methods:**
-- `convertClickUpTasksToGraphTasks()` - Transforms ClickUp format to graph format
+- `convertClickUpTasksToGraphTasks()` - Transforms ClickUp format to graph format using actual API dates
 - `handleOptionsChange()` - Updates display options
-- `saveDraft()` - Saves edited task
-- `deleteTask()` - Removes task
-- `addNewTask()` - Creates new task
+- **Note**: CRUD methods removed (saveDraft, deleteTask, addNewTask) - read-only mode
+- **Placeholder handlers**: `handleTaskUpdate`, `handleTaskStatusUpdate`, `handleTaskDateUpdate` exist but not connected
 
 **Empty State:**
 Shows message when no tasks are available.
@@ -231,10 +230,8 @@ Follows "data down, events up" pattern - receives all data and handlers as props
 **Renders:**
 - ControlPanel (zoom/pan controls)
 - DependencyCanvas (main graph visualization)
-- TaskDetails (task information modal)
-- TaskEditModal (editing form)
-- AddTaskModal (new task form)
-- AddTaskButton (floating action button)
+- TaskDetails (read-only task information modal)
+- **Note**: TaskEditModal, AddTaskModal, AddTaskButton removed (read-only mode)
 
 ---
 
@@ -268,12 +265,12 @@ Follows "data down, events up" pattern - receives all data and handlers as props
 ```
 
 **Features:**
-- Timeline grid with day markers
-- Owner lanes (rows)
-- Task bars positioned by date
-- Dependency arrows
+- Timeline grid with day markers (highlights "today" line)
+- Owner lanes (rows) with large, readable labels (250px left area)
+- Task bars positioned by actual API dates (supports overdue tasks)
+- Dependency arrows (parent to child connections)
 - Selection highlighting
-- Drag interaction for tasks
+- **Note**: Drag interaction removed (read-only mode)
 
 **Rendering:**
 Uses SVG for scalable graphics. Tasks are rendered as `TaskBar` components.
@@ -294,22 +291,25 @@ Uses SVG for scalable graphics. Tasks are rendered as `TaskBar` components.
   task: Task;
   isSelected: boolean;
   blockers: TaskBlocker[];
-  onPointerDown: (e, task, offset) => void;
-  scale: number;
+  onClick: (e, task, position) => void;  // Changed from pointer events to click
+  // Note: Drag functionality removed (read-only mode)
 }
 ```
 
+**Current Behavior:**
+- Click task to open read-only TaskDetails modal
+- No drag functionality (removed for read-only mode)
+
 **Visual Features:**
-- Width based on duration
-- Position based on start day
+- Width based on duration (matches actual date range from API)
+- Position based on start day (from API start_date, can be negative for overdue)
 - Color by status:
   - `todo`: Gray
   - `in-progress`: Blue
-  - `done`: Green
   - `blocked`: Red
+  - **Note**: 'done' status removed - ClickUp removes completed tasks
 - Selection border
-- Tooltip on hover
-- Drag handle
+- Blocker badges for blocked child tasks
 
 ---
 

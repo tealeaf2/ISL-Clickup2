@@ -19,9 +19,31 @@
 
 - **Task Table View**: Browse and manage ClickUp tasks with filtering and statistics
 - **Dependency Graph View**: Interactive Gantt-style visualization of task dependencies
-- **Real-time Synchronization**: Connect to ClickUp API to fetch and manage tasks
-- **Task Management**: Create, edit, delete, and organize tasks with parent-child relationships
-- **Status Propagation**: Automatic parent task status updates based on children
+- **ClickUp API Integration**: Read tasks from ClickUp API with automatic data synchronization
+- **Task Visualization**: View tasks positioned on calendar timeline based on actual start/end dates from ClickUp
+- **Read-Only Display**: Currently displays tasks from ClickUp; update functionality is being developed
+
+### Current Status
+
+**✅ Implemented:**
+- Read-only task display from ClickUp API
+- Interactive dependency graph visualization
+- Task positioning based on API start_date and due_date
+- Pan and zoom navigation
+- Task details modal on click
+- Owner-based lane organization
+- Overdue task support (negative day positioning)
+- Date-based grid limits (2 days before earliest, 2 days after latest)
+
+**🚧 In Development:**
+- Task update functionality (POST/PUT requests to ClickUp API)
+- Task creation (add new tasks to ClickUp)
+- Task editing (modify task properties)
+- Task deletion
+- Drag-to-reschedule tasks
+
+**❌ Removed:**
+- 'done' status (ClickUp removes completed tasks, so no need for this status)
 
 ### Built By
 
@@ -155,32 +177,57 @@ The Task Table view provides a comprehensive dashboard for managing ClickUp task
 
 An interactive visualization of task dependencies:
 
-- **Timeline View**: Tasks are positioned on a calendar timeline based on start dates and durations
+- **Timeline View**: Tasks are positioned on a calendar timeline based on actual `start_date` and `due_date` from ClickUp API
+- **Date-Based Positioning**: 
+  - Tasks positioned using real dates from API (supports overdue tasks with negative day offsets)
+  - Task rectangle width matches actual duration from start to end date
+  - Grid automatically extends to show 2 days before earliest task and 2 days after latest task end date
 - **Hierarchical Organization**: Tasks are organized by owner and parent-child relationships
 - **Interactive Pan & Zoom**: Navigate large graphs with pan and zoom controls
 - **Task Interaction**: 
-  - Click tasks to view/edit details
-  - Drag tasks to reschedule them
-  - Add new tasks directly from the graph
-  - Delete tasks with confirmation
-- **Dependency Visualization**: Visual connections show task relationships
-- **Status Colors**: Visual indicators for task status (todo, in-progress, done, blocked)
+  - **✅ Click tasks** to view details (read-only modal)
+  - **🚧 Drag to reschedule** - Placeholder functionality (not yet connected)
+  - **🚧 Add new tasks** - Placeholder UI exists (not yet connected)
+  - **🚧 Edit/Delete tasks** - Placeholder UI exists (not yet connected)
+- **Dependency Visualization**: Visual connections show task relationships (parent-child arrows)
+- **Status Colors**: Visual indicators for task status (todo, in-progress, blocked)
+  - **Note**: 'done' status removed - ClickUp removes completed tasks, so they don't appear
 - **Blocking Detection**: Highlights tasks that are blocked by their dependencies
+- **Owner Labels**: Large, readable owner names (18px base, scales to maintain 12px minimum) positioned in 250px reserved area on the left
 
 ### Task Management
 
-- **Create Tasks**: Add new tasks with full metadata
-- **Edit Tasks**: Modify task name, owner, status, priority, dates, and duration
-- **Delete Tasks**: Remove tasks (cascades to children)
-- **Parent-Child Relationships**: Establish hierarchical task structures
-- **Status Propagation**: Parent tasks automatically update based on children's status
+**Current State: Read-Only Mode**
+
+The application currently displays tasks from ClickUp but does not support modifications:
+
+- **✅ View Tasks**: Display tasks with full details from ClickUp
+- **✅ Task Details**: Click tasks to see comprehensive information in modal
+- **🚧 Update Tasks**: Placeholder functions exist but not yet implemented
+  - `updateTask()` - General task updates
+  - `updateTaskDates()` - Update start/end dates
+  - `updateTaskStatus()` - Update task status
+  - `batchUpdateTasks()` - Batch update multiple tasks
+- **🚧 Create Tasks**: UI placeholder exists but API integration pending
+- **🚧 Edit Tasks**: UI placeholder exists but API integration pending
+- **🚧 Delete Tasks**: Not yet implemented
+- **✅ Parent-Child Relationships**: Displayed from ClickUp API data
+- **❌ Status Propagation**: Disabled (read-only mode - tasks displayed as-is from API)
 
 ### ClickUp Integration
 
-- **API Authentication**: Secure token-based authentication
-- **Real-time Data**: Fetch teams, tasks, and metadata
-- **Task Synchronization**: Two-way sync with ClickUp (read from ClickUp, write capabilities ready)
+- **API Authentication**: Secure token-based authentication via Vite proxy (development)
+- **Read Operations**: 
+  - ✅ Fetch teams
+  - ✅ Fetch tasks with metadata
+  - ✅ Filter tasks by assignee, status, overdue status
+- **Write Operations**: 
+  - 🚧 Placeholder functions created for future implementation
+  - 🚧 Update task dates, status, properties
+  - 🚧 Create new tasks
+  - 🚧 Delete tasks
 - **Error Handling**: Graceful error handling with user-friendly messages
+- **CORS Handling**: Vite proxy configured for development to bypass CORS issues
 
 ## Component Documentation
 
@@ -363,10 +410,10 @@ ClickUp tasks are converted to the internal task format:
   id: string,
   name: string,
   owner: string,
-  start: number,        // Days from today
-  duration: number,     // Days
-  lane: number,         // Vertical position (assigned by hierarchy)
-  status: 'todo' | 'in-progress' | 'done' | 'blocked',
+  start: number,        // Days from today (can be negative for overdue tasks)
+  duration: number,     // Days (calculated from start_date to due_date, inclusive)
+  lane: number,         // Vertical position (assigned by hierarchy and owner)
+  status: 'todo' | 'in-progress' | 'blocked',  // Note: 'done' removed
   priority: 'urgent' | 'high' | 'normal' | 'low' | 'none',
   parentId: string | null,
   lastUpdated: string
@@ -374,11 +421,17 @@ ClickUp tasks are converted to the internal task format:
 ```
 
 **Conversion Logic:**
-- Status mapping: ClickUp status → internal status
-- Priority mapping: ClickUp priority → internal priority
-- Date calculation: Due date → start day relative to today
-- Owner extraction: First assignee's username
-- Parent relationship: Uses `parent` field from ClickUp
+- **Status mapping**: ClickUp status → internal status (todo, in-progress, blocked)
+  - Note: 'complete' status not mapped - ClickUp removes completed tasks
+- **Priority mapping**: ClickUp priority → internal priority (validates against valid priorities)
+- **Date calculation**: 
+  - Uses `start_date` from API if available (primary)
+  - Falls back to `due_date` if no `start_date`
+  - Calculates `startDay` as days from today (can be negative for overdue tasks)
+  - Duration calculated from `start_date` to `due_date` (inclusive)
+- **Owner extraction**: First assignee's username, defaults to 'Unassigned'
+- **Parent relationship**: Uses `parent` field from ClickUp
+- **Grid limits**: Automatically calculates to show 2 days before earliest task start and 2 days after latest task end
 
 ## Development Guide
 

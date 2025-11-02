@@ -50,4 +50,19 @@ docker compose up
 docker compose down
 ```
 
+## Documentation
+
+Comprehensive documentation is available in the [`docs/`](./docs/) directory:
+
+- **[README.md](./docs/README.md)** - Complete project documentation, architecture, features, and development guide
+- **[API.md](./docs/API.md)** - ClickUp API integration and custom hooks API reference
+- **[COMPONENTS.md](./docs/COMPONENTS.md)** - Detailed component documentation with props and usage examples
+- **[HOOKS.md](./docs/HOOKS.md)** - Custom hooks documentation with examples
+
+## Quick Links
+
+- [Getting Started Guide](./docs/README.md#getting-started)
+- [Architecture Overview](./docs/README.md#architecture)
+- [Component Reference](./docs/COMPONENTS.md)
+- [API Integration Guide](./docs/API.md)
 

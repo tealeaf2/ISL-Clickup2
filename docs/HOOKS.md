@@ -42,6 +42,8 @@ export const useClickUp = (apiToken: string) => {
   getMyTasks: (userEmail: string) => ClickUpTask[];
   getTasksByStatus: (status: string) => ClickUpTask[];
   getOverdueTasks: () => ClickUpTask[];
+  // Note: Update functions exist as placeholders but not exported yet:
+  // updateTask, updateTaskDates, updateTaskStatus, batchUpdateTasks
 }
 ```
 
@@ -225,8 +227,8 @@ export const useTaskRelationships = (
   getChildren: (parentId: string, currentTasks?: Task[]) => Task[];
   getParent: (childId: string, currentTasks?: Task[]) => Task | null;
   calculateParentStatus: (children: Task[]) => TaskStatus | null;
-  updateRelatedTasks: (taskId: string, currentTasks?: Task[]) => void;
   getBlockers: (task: Task) => TaskBlocker[];
+  // Note: updateRelatedTasks removed - status propagation disabled in read-only mode
 }
 ```
 
@@ -277,8 +279,10 @@ Determines what a parent's status should be based on its children's statuses.
 1. If any child is `blocked` → parent is `blocked`
 2. Else if any child is `in-progress` → parent is `in-progress`
 3. Else if any child is `todo` → parent is `todo`
-4. Else if all children are `done` → parent is `done`
-5. Otherwise → parent is `in-progress`
+4. Otherwise → parent is `in-progress`
+5. **Note**: 'done' status removed - ClickUp removes completed tasks
+
+**Current Status**: Status propagation disabled (read-only mode). Logic exists but not executed.
 
 **Example:**
 ```typescript
@@ -287,32 +291,13 @@ const children = getChildren(parentId);
 const newStatus = calculateParentStatus(children);
 ```
 
-#### updateRelatedTasks(taskId, currentTasks?)
+#### updateRelatedTasks (Removed)
 
-Updates parent task status based on children (bottom-up propagation).
+**Status**: ❌ This function has been removed from the hook return value.
 
-**Parameters:**
-- `taskId: string` - ID of the task that changed
-- `currentTasks?: Task[]` - Optional task array (defaults to `tasks`)
+**Reason**: Status propagation is disabled in read-only mode. Tasks are displayed exactly as they appear in ClickUp, without automatic status updates based on children.
 
-**Side Effects:**
-- Updates parent task status in state
-- Recursively updates grandparent if parent status changed
-- Uses debounced updates to prevent excessive re-renders
-
-**Example:**
-```typescript
-const { updateRelatedTasks } = useTaskRelationships(tasks, setTasks);
-
-// After updating a task
-setTasks(prev => {
-  const updated = prev.map(t => 
-    t.id === taskId ? { ...t, status: 'done' } : t
-  );
-  updateRelatedTasks(taskId, updated);
-  return updated;
-});
-```
+**Note**: The internal logic for calculating parent status still exists (`calculateParentStatus`), but it's not automatically executed when tasks change.
 
 #### getBlockers(task)
 
@@ -659,38 +644,25 @@ None
 {
   selectedId: string | null;
   editOpen: boolean;
-  draft: TaskDraft;
   modalPosition: ModalPosition;
-  setSelectedId: (id: string | null) => void;
-  setEditOpen: (open: boolean) => void;
-  setDraft: (draft: TaskDraft) => void;
-  setModalPosition: (position: ModalPosition) => void;
+  selectTask: (taskId: string, position?: ModalPosition) => void;
+  closeSelection: () => void;
+  // Note: draft removed - read-only mode, no editing
 }
 ```
 
 ### State
 
 - **selectedId**: ID of currently selected task (null if none)
-- **editOpen**: Boolean indicating if edit modal is open
-- **draft**: Draft state for editing task
+- **editOpen**: Boolean indicating if detail modal is open (read-only mode)
 - **modalPosition**: Screen position for modal placement
+
+**Note**: `draft` state removed - application is read-only, tasks are displayed as-is from ClickUp
 
 ### Types
 
-**TaskDraft:**
-```typescript
-interface TaskDraft {
-  id: string;
-  name: string;
-  owner: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  start: number;
-  duration: number;
-  lane: number;
-  parentId: string;
-}
-```
+**TaskDraft (Removed):**
+- This interface is no longer used. The application is read-only and does not maintain draft state for editing.
 
 **ModalPosition:**
 ```typescript
@@ -705,40 +677,26 @@ interface ModalPosition {
 ```typescript
 import { useTaskSelection } from '@/shared/hooks/useTaskSelection';
 
-function TaskEditor() {
+function TaskViewer() {
   const {
     selectedId,
     editOpen,
-    draft,
     modalPosition,
-    setSelectedId,
-    setEditOpen,
-    setDraft,
-    setModalPosition
+    selectTask,
+    closeSelection
   } = useTaskSelection();
 
   const handleTaskClick = (taskId: string, clickPos: { x: number, y: number }) => {
-    setSelectedId(taskId);
-    setModalPosition(clickPos);
-    setEditOpen(true);
-    // Draft should be set from task data
-  };
-
-  const handleSave = () => {
-    // Save draft...
-    setEditOpen(false);
-    setSelectedId(null);
+    selectTask(taskId, clickPos);
   };
 
   return (
     <>
-      {editOpen && (
-        <TaskEditModal
+      {editOpen && selectedId && (
+        <TaskDetails
           taskId={selectedId}
-          draft={draft}
-          onDraftChange={setDraft}
-          onSave={handleSave}
-          onClose={() => setEditOpen(false)}
+          position={modalPosition}
+          onClose={closeSelection}
         />
       )}
     </>
