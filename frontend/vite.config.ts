@@ -31,5 +31,10 @@ export default defineConfig({
       },
     },
   },
+  test: {
+    environment: 'happy-dom',
+    setupFiles: './tst/setup.ts',
+    include: ['tst/**/*.{test,spec}.{tsx,ts}'],
+  }
 })
 
