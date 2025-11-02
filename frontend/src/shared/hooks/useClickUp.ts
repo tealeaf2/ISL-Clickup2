@@ -8,6 +8,7 @@
  * Features:
  * - Team fetching and management
  * - Task fetching from teams with customizable parameters
+ * - Automatic comment fetching for all tasks
  * - Task filtering utilities (by user, status, overdue)
  * - Automatic error handling and loading state management
  * - Uses Vite proxy for CORS-free development
@@ -28,10 +29,11 @@ import type { ClickUpTask, Team } from '../types';
  * @returns {Object} Object containing teams, tasks, loading state, error state, and API functions
  * @returns {Team[]} teams - Array of teams fetched from ClickUp
  * @returns {ClickUpTask[]} tasks - Array of tasks fetched from ClickUp
+ * @returns {Map<string, string[]>} taskComments - Map of task IDs to their comment arrays
  * @returns {boolean} loading - Whether an API request is currently in progress
  * @returns {string} error - Error message if an API request failed
  * @returns {Function} fetchTeams - Function to fetch all teams for the authenticated user
- * @returns {Function} fetchTasks - Function to fetch tasks from a specific team
+ * @returns {Function} fetchTasks - Function to fetch tasks from a specific team (also fetches comments)
  * @returns {Function} getMyTasks - Function to filter tasks by user email
  * @returns {Function} getTasksByStatus - Function to filter tasks by status
  * @returns {Function} getOverdueTasks - Function to get tasks that are overdue
@@ -42,6 +44,7 @@ import type { ClickUpTask, Team } from '../types';
 export const useClickUp = (apiToken: string) => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [tasks, setTasks] = useState<ClickUpTask[]>([]);
+  const [taskComments, setTaskComments] = useState<Map<string, string[]>>(new Map());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -107,7 +110,33 @@ export const useClickUp = (apiToken: string) => {
       }
       
       const data = await response.json();
-      setTasks(data.tasks || []);
+      const fetchedTasks = data.tasks || [];
+      setTasks(fetchedTasks);
+      
+      // Fetch comments for each task
+      const commentsMap = new Map<string, string[]>();
+      await Promise.all(
+        fetchedTasks.map(async (task: ClickUpTask) => {
+          try {
+            const commentResponse = await fetch(`${baseUrl}/task/${task.id}/comment`, { headers });
+            if (commentResponse.ok) {
+              const commentData = await commentResponse.json();
+              const comments = commentData.comments || [];
+              if (comments.length > 0) {
+                const allComments = comments
+                  .map((c: any) => c.comment_text || '')
+                  .filter((text: string) => text.trim());
+                commentsMap.set(task.id, allComments);
+              }
+            }
+          } catch (err) {
+            // Silently fail for individual comment fetches
+            console.error(`Failed to fetch comments for task ${task.id}:`, err);
+          }
+        })
+      );
+      
+      setTaskComments(commentsMap);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
     } finally {
@@ -151,11 +180,14 @@ export const useClickUp = (apiToken: string) => {
    */
   const getOverdueTasks = useCallback((): ClickUpTask[] => {
     const now = Date.now();
-    return tasks.filter(task => 
-      task.due_date && 
-      parseInt(task.due_date) < now && 
-      task.status.type !== 'closed'
-    );
+    return tasks.filter(task => {
+      if (!task.due_date) return false;
+      // Handle both string and number due_date formats
+      const dueDateValue = typeof task.due_date === 'number' 
+        ? task.due_date 
+        : parseInt(task.due_date);
+      return dueDateValue < now && task.status.type !== 'closed';
+    });
   }, [tasks]);
 
   /**
@@ -286,6 +318,7 @@ export const useClickUp = (apiToken: string) => {
   return {
     teams,
     tasks,
+    taskComments,
     loading,
     error,
     fetchTeams,

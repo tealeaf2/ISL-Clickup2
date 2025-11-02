@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { STATUS_BADGE_CLASSES } from '../constants';
+import { STATUS_BADGE_CLASSES } from '../../../shared/constants';
 
 /**
  * Status badge component for displaying task status with color-coded styling

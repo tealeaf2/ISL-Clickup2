@@ -33,6 +33,8 @@ export interface Task {
   priority: TaskPriority;
   /** ID of the parent task, or null if this is a top-level task */
   parentId: string | null;
+  /** Due date from ClickUp API (string or number timestamp) - used for time remaining calculation */
+  dueDate?: string | number;
   /** ISO 8601 timestamp when task was last updated (optional) Used for memoization*/
   lastUpdated?: string;
   /** Computed rectangle position and dimensions for rendering (optional) Used for memoization*/

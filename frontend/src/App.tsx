@@ -15,7 +15,7 @@
 import { useState } from 'react'
 import Navigation from './components/Navigation'
 import TaskDependencyMapContainer from './features/task-dependency-map/components/TaskDependencyMapContainer'
-import { TaskTable } from './shared/components/TaskTable'
+import { TaskTable } from './features/task-table/components/TaskTable'
 import type { ClickUpTask } from './shared/types'
 
 function App() {

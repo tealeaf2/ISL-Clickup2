@@ -15,8 +15,44 @@
  * @param {Function} [props.onStatusUpdate] - TODO: Callback for updating task status (not yet implemented)
  */
 import React from 'react';
-import StatusBadge from '../../../shared/components/StatusBadge';
+import StatusBadge from './StatusBadge';
 import { daysSince } from '../../../shared/utils';
+
+/**
+ * Calculates time remaining until due date or time overdue
+ * Matches the calculation logic used in TaskTable component
+ */
+function calculateTimeRemaining(dueDate) {
+  if (!dueDate) return "-";
+  
+  try {
+    const isNumeric = /^\d+$/.test(String(dueDate));
+    const dueDt = isNumeric ? new Date(parseInt(dueDate)) : new Date(dueDate);
+    
+    if (isNaN(dueDt.getTime())) return "-";
+    
+    const now = new Date();
+    const diffMs = dueDt.getTime() - now.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    const remainingHours = diffHours % 24;
+    
+    if (diffHours < 0) {
+      const absDays = Math.abs(diffDays);
+      const absHours = Math.abs(remainingHours);
+      if (absDays === 0) {
+        return `${absHours}h overdue`;
+      }
+      return absHours > 0 ? `${absDays}d ${absHours}h overdue` : `${absDays}d overdue`;
+    } else if (diffHours < 24) {
+      return diffHours === 0 ? "Due now" : `${diffHours}h remaining`;
+    } else {
+      return remainingHours > 0 ? `${diffDays}d ${remainingHours}h remaining` : `${diffDays}d remaining`;
+    }
+  } catch {
+    return "-";
+  }
+}
 
 const TaskDetails = ({ 
   task, 
@@ -59,15 +95,13 @@ const TaskDetails = ({
       </div>
       
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <div>
-          Start: <span className="font-mono">Day {task.start}</span>
-        </div>
-        <div>
-          Duration: <span className="font-mono">{task.duration}d</span>
-        </div>
-        <div>
-          Lane: <span className="font-mono">{task.lane}</span>
-        </div>
+        {task.dueDate && (
+          <div className="col-span-2">
+            Time Remaining: <span className={`font-mono ${calculateTimeRemaining(task.dueDate)?.includes('overdue') || calculateTimeRemaining(task.dueDate) === "Due now" ? 'text-red-600 font-semibold' : ''}`}>
+              {calculateTimeRemaining(task.dueDate)}
+            </span>
+          </div>
+        )}
         <div>
           Parent: <span className="font-mono">{task.parentId || '—'}</span>
         </div>

@@ -239,6 +239,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
         status: status,
         priority: priority,
         parentId: clickUpTask.parent || null,
+        dueDate: clickUpTask.due_date, // Store original due_date for time remaining calculation
         lastUpdated: clickUpTask.date_updated
       };
     });
@@ -443,12 +444,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     zoomOut();
   }, [zoomOut]);
 
-  /** Handles reset view button click - resets pan and zoom to initial values */
-  const handleReset = useCallback(() => {
-    resetView();
-  }, [resetView]);
-
-  /** Handles fit to view button click - adjusts pan/zoom to fit all content */
+  /** Handles fit to view button click - adjusts pan/zoom to fit content horizontally */
   const handleFitToView = useCallback(() => {
     fitToView();
   }, [fitToView]);
@@ -621,10 +617,8 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     day0Offset,     // The offset in days from grid start to day 0 (today)
     
     // Event handlers
-    onOptionsChange: handleOptionsChange,
     onZoomIn: handleZoomIn,
     onZoomOut: handleZoomOut,
-    onReset: handleReset,
     onFitToView: handleFitToView,
     onTaskClick,
     onPointerDown,

@@ -157,26 +157,24 @@ export const usePanZoom = (contentWidth: number, contentHeight: number) => {
   };
 
   /**
-   * Calculates and applies zoom/pan to fit all content within the container viewport
-   * Centers the content and scales it to fit with 10% padding
+   * Calculates and applies zoom/pan to fit content horizontally (left to right)
+   * within the container viewport. Fits the width exactly to the container width,
+   * maintaining the current vertical pan position.
    */
   const fitToView = () => {
     if (!containerRef.current) return;
     
     const containerRect = containerRef.current.getBoundingClientRect();
     const containerWidth = containerRect.width;
-    const containerHeight = containerRect.height;
     
-    // Calculate scale to fit content in view
-    const scaleX = containerWidth / contentWidth;
-    const scaleY = containerHeight / contentHeight;
-    const fitScale = Math.min(scaleX, scaleY) * 0.9; // 0.9 for some padding
+    // Calculate scale to fit content horizontally (width only)
+    const fitScale = containerWidth / contentWidth;
     
     const clampedScale = clamp(fitScale, 0.25, 4);
     
-    // Center the content
-    const newPanX = (containerWidth - contentWidth * clampedScale) / 2;
-    const newPanY = (containerHeight - contentHeight * clampedScale) / 2;
+    // Position content at the left edge (x = 0), maintain current vertical pan
+    const newPanX = 0;
+    const newPanY = pan.y; // Keep current vertical position
     
     setScale(clampedScale);
     setPan({ x: newPanX, y: newPanY });

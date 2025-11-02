@@ -29,7 +29,7 @@
  */
 import React from 'react';
 import TaskBar from './TaskBar';
-import LegendItem from '../../../shared/components/LegendItem';
+import LegendItem from './LegendItem';
 import { LAYOUT_CONSTANTS, STATUS_COLORS } from '../../../shared/constants';
 import { edgePath } from '../../../shared/utils';
 

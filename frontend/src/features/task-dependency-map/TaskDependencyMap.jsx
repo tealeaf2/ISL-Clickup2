@@ -23,7 +23,6 @@ import TaskDetails from './components/TaskDetails';
  * Follows "data down, event up" pattern
  * 
  * @param {Object} props - Component props
- * @param {Object} props.options - Display and behavior options for the graph
  * @param {Array} props.tasks - Array of tasks to display (with computed rectangles)
  * @param {Array} props.dependencies - Array of dependency relationships between tasks
  * @param {string|null} props.selectedId - ID of currently selected task
@@ -37,11 +36,9 @@ import TaskDetails from './components/TaskDetails';
  * @param {boolean} props.isPanning - Whether user is currently panning
  * @param {Object} props.containerRef - React ref to the container element
  * @param {Array} props.blockers - Array of tasks blocking the selected task
- * @param {Function} props.onOptionsChange - Callback when options change
  * @param {Function} props.onZoomIn - Callback to zoom in
  * @param {Function} props.onZoomOut - Callback to zoom out
- * @param {Function} props.onReset - Callback to reset view
- * @param {Function} props.onFitToView - Callback to fit content to viewport
+ * @param {Function} props.onFitToView - Callback to fit content horizontally to viewport
  * @param {Function} props.onTaskClick - Callback when a task is clicked
  * @param {Function} props.onTaskPointerDown - Callback when pointer down on task
  * @param {Function} props.onTaskPointerMove - Callback when pointer moves on task
@@ -55,7 +52,6 @@ import TaskDetails from './components/TaskDetails';
  */
 const TaskDependencyMap = ({
   // Data props (data down)
-  options,
   tasks,
   dependencies,
   selectedId,
@@ -73,10 +69,8 @@ const TaskDependencyMap = ({
   day0Offset,
   
   // Event handler props (events up)
-  onOptionsChange,
   onZoomIn,
   onZoomOut,
-  onReset,
   onFitToView,
   onTaskClick,
   onPointerDown,
@@ -88,17 +82,11 @@ const TaskDependencyMap = ({
 }) => {
   return (
     <div className="w-full h-[80vh] bg-slate-50 text-gray-800 flex flex-col">
-      {/* Top control panel with zoom controls and options */}
+      {/* Top control panel with zoom controls */}
       <ControlPanel
-        options={options}
-        onOptionsChange={onOptionsChange}
         onZoomIn={onZoomIn}
         onZoomOut={onZoomOut}
-        onReset={onReset}
         onFitToView={onFitToView}
-        isPropagating={true}
-        onTriggerPropagation={() => {}}
-        autoUpdateEnabled={true}
       />
 
       {/* Main canvas container - handles pan/zoom interactions */}
