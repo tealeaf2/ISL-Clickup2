@@ -21,6 +21,7 @@ This app allows visualization and management of task dependencies within ClickUp
 
 * Docker & Docker Compose installed
 * Node.js
+* ClickUp API Token (get from [ClickUp Settings](https://app.clickup.com/settings/apps))
 
 ### Installation/Setup
 
@@ -30,6 +31,9 @@ This app allows visualization and management of task dependencies within ClickUp
 git clone https://github.com/tealeaf2/ISL-Clickup2.git
 ```
 
+**Important**: The `.env` file contains sensitive credentials and is automatically excluded from git. Never commit your actual API token to the repository.
+
+3. Build and start your docker container
 
 ```sh
 docker compose up --build
