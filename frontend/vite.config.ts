@@ -13,10 +13,23 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  test: {
-    environment: 'happy-dom',
-    setupFiles: './tst/setup.ts',
-    include: ['tst/**/*.{test,spec}.{tsx,ts}'],
-  }
+  server: {
+    proxy: {
+      // Proxy API requests to ClickUp API to avoid CORS issues
+      '/api/clickup': {
+        target: 'https://api.clickup.com/api/v2',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/clickup/, ''),
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            // Forward the Authorization header from the original request
+            if (req.headers.authorization) {
+              proxyReq.setHeader('Authorization', req.headers.authorization);
+            }
+          });
+        },
+      },
+    },
+  },
 })
 
