@@ -3,6 +3,7 @@ import StatusBadge from '../../../shared/components/StatusBadge';
 import { daysSince } from '../../../shared/utils';
 import { Toolbar } from './Toolbar';
 import {User, Target, Calendar, Clapperboard, ArrowBigUp,ArrowBigDown, Rows4, Construction} from "lucide-react"
+// Icons
 
 /**
  * Task details modal component positioned next to the clicked task
@@ -49,26 +50,31 @@ const TaskDetails = ({
       
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div>
+          {/* Calendar Icon */}
           <Calendar className="mr-1 inline-block h-5 w-5 align-middle" />
           <span className="align-middle">Start: <span className="font-mono">Day {task.start}</span>
          </span>
         </div>
         <div>
+          // Clapperboard Icon
           <Clapperboard className="mr-1 inline-block h-5 w-5 align-middle" />
            <span className="align-middle">Duration: <span className="font-mono">{task.duration}</span>
             </span>
         </div>
         <div>
+          // Rows Icon
           <Rows4 class="mr-1 inline-block h-5 w-5 align-middle"/>
            <span className="align-middle">Lane: <span className="font-mono">{task.lane}</span>
            </span>
         </div>
         <div>
+          // Arrow Big Up Icon
           <ArrowBigUp className="mr-1 inline-block h-5 w-5 align-middle" />
           <span className="align-middle">Parent: <span className="font-mono">{task.parentId || '—'}</span>
           </span>
         </div>
         <div className="col-span-2">
+          // Arrow Down Up Icon
            <ArrowBigDown className="mr-1 inline-block h-5 w-5 align-middle" />
           <span className="align-middle"> Depends:{' '}
           <span className="font-mono">
@@ -80,6 +86,8 @@ const TaskDetails = ({
 
       {/* Blockers list */}
       <div className="pt-1 flex items-center gap-2">
+
+        // Construction Icon
         <Construction className='mr-1 inline-block h-5 w-5 align-middle'/>
         <div className="text-xs font-semibold mb-1">Blockers:</div>
         {blockers.length === 0 ? (
