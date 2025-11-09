@@ -33,6 +33,8 @@ export interface Task {
   priority: TaskPriority;
   /** ID of the parent task, or null if this is a top-level task */
   parentId: string | null;
+  /** IDs of tasks that this task depends on */
+  depends?: string[];
   /** Due date from ClickUp API (string or number timestamp) - used for time remaining calculation */
   dueDate?: string | number;
   /** ISO 8601 timestamp when task was last updated (optional) Used for memoization*/
@@ -129,6 +131,8 @@ export interface TaskDraft {
   status: TaskStatus;
   /** Priority level */
   priority: TaskPriority;
+  /** Text representation of task dependencies (comma-separated IDs) */
+  dependsText?: string;
   /** Start day relative to today */
   start: number;
   /** Duration in days */

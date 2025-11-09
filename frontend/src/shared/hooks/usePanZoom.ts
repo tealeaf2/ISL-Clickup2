@@ -43,7 +43,7 @@ import type { PanState } from '../types';
  * @example
  * const { containerRef, scale, pan, zoomIn, zoomOut } = usePanZoom(2000, 1500);
  */
-export const usePanZoom = (contentWidth: number, contentHeight: number) => {
+export const usePanZoom = (contentWidth: number) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.8);
   const [pan, setPan] = useState<PanState>({ x: 0, y: 0 });

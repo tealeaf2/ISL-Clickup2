@@ -249,7 +249,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
   const convertedTasks = convertClickUpTasksToGraphTasks(clickUpTasks || [], today);
 
   /** Display and behavior options for the dependency graph */
-  const [options, setOptions] = useState<TaskOptions>({
+  const [options] = useState<TaskOptions>({
     parentBlockedIfAnyChildBlocked: true,  // Auto-block parent if any child is blocked
     snapToDays: true,                       // Snap task positions to day boundaries
     enableAutoPropagation: true,            // Auto-update parent status based on children
@@ -387,7 +387,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     fitToView,        // Function to fit content to viewport
     zoomIn,           // Function to zoom in
     zoomOut           // Function to zoom out
-  } = usePanZoom(contentWidth, contentHeight);
+  } = usePanZoom(contentWidth);
 
 
 

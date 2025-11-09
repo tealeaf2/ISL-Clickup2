@@ -190,130 +190,130 @@ export const useClickUp = (apiToken: string) => {
     });
   }, [tasks]);
 
-  /**
-   * TODO: Update task in ClickUp API
-   * 
-   * This function will send a PUT/PATCH request to update a task in ClickUp.
-   * Should handle updating task properties like name, status, dates, assignees, etc.
-   * 
-   * @param {string} taskId - The ID of the task to update
-   * @param {Object} updates - Object containing the fields to update
-   * @param {string} [updates.name] - New task name
-   * @param {string} [updates.status] - New task status
-   * @param {number|string} [updates.start_date] - New start date (timestamp or ISO string)
-   * @param {number|string} [updates.due_date] - New due date (timestamp or ISO string)
-   * @param {string[]} [updates.assignees] - Array of user IDs to assign
-   * @param {string} [updates.priority] - New priority level
-   * @param {string} [updates.description] - New task description
-   * @returns {Promise<ClickUpTask>} Promise that resolves with the updated task
-   * 
-   * @example
-   * await updateTask('task123', { 
-   *   status: 'in progress',
-   *   due_date: Date.now() + 7*24*60*60*1000 
-   * });
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const updateTask = useCallback(async (taskId: string, updates: {
-    name?: string;
-    status?: string;
-    start_date?: number | string;
-    due_date?: number | string;
-    assignees?: string[];
-    priority?: string;
-    description?: string;
-  }): Promise<ClickUpTask> => {
-    // TODO: Implement API call to ClickUp
-    // PUT /api/clickup/task/{task_id}
-    // Headers: Authorization, Content-Type
-    // Body: { ...updates }
-    // Handle response and update local tasks state
-    // Handle errors appropriately
+  // /**
+  //  * TODO: Update task in ClickUp API
+  //  * 
+  //  * This function will send a PUT/PATCH request to update a task in ClickUp.
+  //  * Should handle updating task properties like name, status, dates, assignees, etc.
+  //  * 
+  //  * @param {string} taskId - The ID of the task to update
+  //  * @param {Object} updates - Object containing the fields to update
+  //  * @param {string} [updates.name] - New task name
+  //  * @param {string} [updates.status] - New task status
+  //  * @param {number|string} [updates.start_date] - New start date (timestamp or ISO string)
+  //  * @param {number|string} [updates.due_date] - New due date (timestamp or ISO string)
+  //  * @param {string[]} [updates.assignees] - Array of user IDs to assign
+  //  * @param {string} [updates.priority] - New priority level
+  //  * @param {string} [updates.description] - New task description
+  //  * @returns {Promise<ClickUpTask>} Promise that resolves with the updated task
+  //  * 
+  //  * @example
+  //  * await updateTask('task123', { 
+  //  *   status: 'in progress',
+  //  *   due_date: Date.now() + 7*24*60*60*1000 
+  //  * });
+  //  */
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const updateTask = useCallback(async (taskId: string, updates: {
+  //   name?: string;
+  //   status?: string;
+  //   start_date?: number | string;
+  //   due_date?: number | string;
+  //   assignees?: string[];
+  //   priority?: string;
+  //   description?: string;
+  // }): Promise<ClickUpTask> => {
+  //   // TODO: Implement API call to ClickUp
+  //   // PUT /api/clickup/task/{task_id}
+  //   // Headers: Authorization, Content-Type
+  //   // Body: { ...updates }
+  //   // Handle response and update local tasks state
+  //   // Handle errors appropriately
     
-    throw new Error('updateTask not yet implemented');
-  }, [apiToken]);
+  //   throw new Error('updateTask not yet implemented');
+  // }, [apiToken]);
 
-  /**
-   * TODO: Update task dates in ClickUp API
-   * 
-   * Convenience function specifically for updating task start and due dates.
-   * This will be called when a task is moved or resized on the graph.
-   * 
-   * @param {string} taskId - The ID of the task to update
-   * @param {number|string} startDate - New start date (timestamp or ISO string)
-   * @param {number|string} dueDate - New due date (timestamp or ISO string)
-   * @returns {Promise<ClickUpTask>} Promise that resolves with the updated task
-   * 
-   * @example
-   * await updateTaskDates('task123', Date.now(), Date.now() + 7*24*60*60*1000);
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const updateTaskDates = useCallback(async (
-    taskId: string, 
-    startDate: number | string, 
-    dueDate: number | string
-  ): Promise<ClickUpTask> => {
-    // TODO: Implement API call to ClickUp
-    // PUT /api/clickup/task/{task_id}
-    // Update start_date and due_date fields
-    // Handle response and update local tasks state
+  // /**
+  //  * TODO: Update task dates in ClickUp API
+  //  * 
+  //  * Convenience function specifically for updating task start and due dates.
+  //  * This will be called when a task is moved or resized on the graph.
+  //  * 
+  //  * @param {string} taskId - The ID of the task to update
+  //  * @param {number|string} startDate - New start date (timestamp or ISO string)
+  //  * @param {number|string} dueDate - New due date (timestamp or ISO string)
+  //  * @returns {Promise<ClickUpTask>} Promise that resolves with the updated task
+  //  * 
+  //  * @example
+  //  * await updateTaskDates('task123', Date.now(), Date.now() + 7*24*60*60*1000);
+  //  */
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const updateTaskDates = useCallback(async (
+  //   taskId: string, 
+  //   startDate: number | string, 
+  //   dueDate: number | string
+  // ): Promise<ClickUpTask> => {
+  //   // TODO: Implement API call to ClickUp
+  //   // PUT /api/clickup/task/{task_id}
+  //   // Update start_date and due_date fields
+  //   // Handle response and update local tasks state
     
-    throw new Error('updateTaskDates not yet implemented');
-  }, [apiToken]);
+  //   throw new Error('updateTaskDates not yet implemented');
+  // }, [apiToken]);
 
-  /**
-   * TODO: Update task status in ClickUp API
-   * 
-   * Convenience function specifically for updating task status.
-   * This will be called when a task status is changed on the graph.
-   * 
-   * @param {string} taskId - The ID of the task to update
-   * @param {string} status - New status (must match a valid ClickUp status for the workspace)
-   * @returns {Promise<ClickUpTask>} Promise that resolves with the updated task
-   * 
-   * @example
-   * await updateTaskStatus('task123', 'in progress');
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const updateTaskStatus = useCallback(async (
-    taskId: string, 
-    status: string
-  ): Promise<ClickUpTask> => {
-    // TODO: Implement API call to ClickUp
-    // PUT /api/clickup/task/{task_id}
-    // Update status field
-    // Note: Status must be a valid status ID or name for the workspace
-    // Handle response and update local tasks state
+  // /**
+  //  * TODO: Update task status in ClickUp API
+  //  * 
+  //  * Convenience function specifically for updating task status.
+  //  * This will be called when a task status is changed on the graph.
+  //  * 
+  //  * @param {string} taskId - The ID of the task to update
+  //  * @param {string} status - New status (must match a valid ClickUp status for the workspace)
+  //  * @returns {Promise<ClickUpTask>} Promise that resolves with the updated task
+  //  * 
+  //  * @example
+  //  * await updateTaskStatus('task123', 'in progress');
+  //  */
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const updateTaskStatus = useCallback(async (
+  //   taskId: string, 
+  //   status: string
+  // ): Promise<ClickUpTask> => {
+  //   // TODO: Implement API call to ClickUp
+  //   // PUT /api/clickup/task/{task_id}
+  //   // Update status field
+  //   // Note: Status must be a valid status ID or name for the workspace
+  //   // Handle response and update local tasks state
     
-    throw new Error('updateTaskStatus not yet implemented');
-  }, [apiToken]);
+  //   throw new Error('updateTaskStatus not yet implemented');
+  // }, [apiToken]);
 
-  /**
-   * TODO: Batch update multiple tasks in ClickUp API
-   * 
-   * Updates multiple tasks in a single API call for efficiency.
-   * This will be called when multiple tasks are moved or updated at once.
-   * 
-   * @param {Array<{taskId: string, updates: Object}>} taskUpdates - Array of task update objects
-   * @returns {Promise<ClickUpTask[]>} Promise that resolves with updated tasks
-   * 
-   * @example
-   * await batchUpdateTasks([
-   *   { taskId: 'task1', updates: { start_date: Date.now() } },
-   *   { taskId: 'task2', updates: { due_date: Date.now() + 86400000 } }
-   * ]);
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const batchUpdateTasks = useCallback(async (
-    taskUpdates: Array<{ taskId: string; updates: Record<string, any> }>
-  ): Promise<ClickUpTask[]> => {
-    // TODO: Implement batch update API call to ClickUp
-    // May need to make multiple PUT requests or use a batch endpoint if available
-    // Handle partial failures appropriately
-    // Update local tasks state after successful updates
+  // /**
+  //  * TODO: Batch update multiple tasks in ClickUp API
+  //  * 
+  //  * Updates multiple tasks in a single API call for efficiency.
+  //  * This will be called when multiple tasks are moved or updated at once.
+  //  * 
+  //  * @param {Array<{taskId: string, updates: Object}>} taskUpdates - Array of task update objects
+  //  * @returns {Promise<ClickUpTask[]>} Promise that resolves with updated tasks
+  //  * 
+  //  * @example
+  //  * await batchUpdateTasks([
+  //  *   { taskId: 'task1', updates: { start_date: Date.now() } },
+  //  *   { taskId: 'task2', updates: { due_date: Date.now() + 86400000 } }
+  //  * ]);
+  //  */
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const batchUpdateTasks = useCallback(async (
+  //   taskUpdates: Array<{ taskId: string; updates: Record<string, any> }>
+  // ): Promise<ClickUpTask[]> => {
+  //   // TODO: Implement batch update API call to ClickUp
+  //   // May need to make multiple PUT requests or use a batch endpoint if available
+  //   // Handle partial failures appropriately
+  //   // Update local tasks state after successful updates
     
-    throw new Error('batchUpdateTasks not yet implemented');
-  }, [apiToken]);
+  //   throw new Error('batchUpdateTasks not yet implemented');
+  // }, [apiToken]);
 
   return {
     teams,
