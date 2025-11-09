@@ -17,6 +17,7 @@
 import React from 'react';
 import StatusBadge from './StatusBadge';
 import { daysSince } from '../../../shared/utils';
+import {User, Target, Calendar, Clapperboard, ArrowBigUp,ArrowBigDown, Rows4, Construction} from "lucide-react"
 
 /**
  * Calculates time remaining until due date or time overdue
@@ -88,7 +89,11 @@ const TaskDetails = ({
       <div className="text-xs text-gray-500">Task ID: {task.id}</div>
       
       <div className="flex items-center gap-2">
+        {/* Target(Status) Icon */}
+        <Target class="h-5 w-5"/>
         <StatusBadge status={task.status} />
+        {/* User Icon */}
+         <User className="h-5 w-5"/>
         <div className="text-xs text-gray-500">
           Owner: {task.owner || 'Unassigned'}
         </div>
@@ -97,15 +102,21 @@ const TaskDetails = ({
       <div className="grid grid-cols-2 gap-2 text-xs">
         {task.dueDate && (
           <div className="col-span-2">
+            {/* Calendar (Time Remaining) Icon */}
+          <Calendar className="mr-1 inline-block h-5 w-5 align-middle" />
             Time Remaining: <span className={`font-mono ${calculateTimeRemaining(task.dueDate)?.includes('overdue') || calculateTimeRemaining(task.dueDate) === "Due now" ? 'text-red-600 font-semibold' : ''}`}>
               {calculateTimeRemaining(task.dueDate)}
             </span>
           </div>
         )}
         <div>
+           {/* Arrow Big Up (Parent) Icon */}
+          <ArrowBigUp className="mr-1 inline-block h-5 w-5 align-middle" />
           Parent: <span className="font-mono">{task.parentId || '—'}</span>
         </div>
         <div className="col-span-2">
+           {/* Arrow Down Up (Depenency) Icon */}
+           <ArrowBigDown className="mr-1 inline-block h-5 w-5 align-middle" />
           Depends:{' '}
           <span className="font-mono">
             {(task.depends || []).join(', ') || '—'}
@@ -114,7 +125,9 @@ const TaskDetails = ({
       </div>
 
       {/* Blockers list */}
-      <div className="pt-1">
+      <div className="pt-1 flex items-center gap-2">
+         {/* Construction(Blocker) Icon */}
+        <Construction className='mr-1 inline-block h-5 w-5 align-middle'/>
         <div className="text-xs font-semibold mb-1">Blockers</div>
         {blockers.length === 0 ? (
           <div className="text-xs text-gray-500">No active blockers</div>
