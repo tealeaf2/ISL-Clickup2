@@ -385,7 +385,6 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     onPointerMove,    // Pointer move event handler
     onPointerUp,      // Pointer up event handler
     fitToView,        // Function to fit content to viewport
-    resetView,        // Function to reset pan and zoom
     zoomIn,           // Function to zoom in
     zoomOut           // Function to zoom out
   } = usePanZoom(contentWidth, contentHeight);
@@ -429,11 +428,6 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
    * These handlers update state in the container, which then flows back down as props
    */
 
-  /** Handles changes to graph display/behavior options */
-  const handleOptionsChange = useCallback((newOptions: TaskOptions) => {
-    setOptions(newOptions);
-  }, []);
-
   /** Handles zoom in button click */
   const handleZoomIn = useCallback(() => {
     zoomIn();
@@ -471,128 +465,128 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     selectTask('', { x: 0, y: 0 });
   }, [setSelectedId, setEditOpen, selectTask]);
 
-  /**
-   * TODO: Handle task update from graph interactions
-   * 
-   * This function will be called when a task is updated on the graph (e.g., moved,
-   * resized, status changed). It should:
-   * 1. Convert the graph task changes to ClickUp API format
-   * 2. Call the ClickUp API to update the task
-   * 3. Update local state with the response
-   * 4. Handle errors and show user feedback
-   * 
-   * @param {string} taskId - The ID of the task being updated
-   * @param {Object} changes - Object containing the changes made
-   * @param {number} [changes.startDay] - New start day (relative to today)
-   * @param {number} [changes.duration] - New duration in days
-   * @param {string} [changes.status] - New status
-   * @param {string} [changes.name] - New task name
-   * @returns {Promise<void>} Promise that resolves when update is complete
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleTaskUpdate = useCallback(async (
-    taskId: string, 
-    changes: {
-      startDay?: number;
-      duration?: number;
-      status?: string;
-      name?: string;
-    }
-  ): Promise<void> => {
-    // TODO: Implement task update handler
-    // 1. Get the current task from tasksById
-    // 2. Calculate new start_date and due_date from startDay and duration
-    // 3. Convert to ClickUp API format (timestamps or ISO strings)
-    // 4. Call useClickUp's updateTask or updateTaskDates function
-    // 5. Update local tasks state with the response
-    // 6. Handle loading states and errors
-    // 7. Show user feedback (success/error message)
+  // /**
+  //  * TODO: Handle task update from graph interactions
+  //  * 
+  //  * This function will be called when a task is updated on the graph (e.g., moved,
+  //  * resized, status changed). It should:
+  //  * 1. Convert the graph task changes to ClickUp API format
+  //  * 2. Call the ClickUp API to update the task
+  //  * 3. Update local state with the response
+  //  * 4. Handle errors and show user feedback
+  //  * 
+  //  * @param {string} taskId - The ID of the task being updated
+  //  * @param {Object} changes - Object containing the changes made
+  //  * @param {number} [changes.startDay] - New start day (relative to today)
+  //  * @param {number} [changes.duration] - New duration in days
+  //  * @param {string} [changes.status] - New status
+  //  * @param {string} [changes.name] - New task name
+  //  * @returns {Promise<void>} Promise that resolves when update is complete
+  //  */
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const handleTaskUpdate = useCallback(async (
+  //   taskId: string, 
+  //   changes: {
+  //     startDay?: number;
+  //     duration?: number;
+  //     status?: string;
+  //     name?: string;
+  //   }
+  // ): Promise<void> => {
+  //   // TODO: Implement task update handler
+  //   // 1. Get the current task from tasksById
+  //   // 2. Calculate new start_date and due_date from startDay and duration
+  //   // 3. Convert to ClickUp API format (timestamps or ISO strings)
+  //   // 4. Call useClickUp's updateTask or updateTaskDates function
+  //   // 5. Update local tasks state with the response
+  //   // 6. Handle loading states and errors
+  //   // 7. Show user feedback (success/error message)
     
-    console.log('TODO: handleTaskUpdate called with:', { taskId, changes });
-    // throw new Error('handleTaskUpdate not yet implemented');
-  }, []);
+  //   console.log('TODO: handleTaskUpdate called with:', { taskId, changes });
+  //   // throw new Error('handleTaskUpdate not yet implemented');
+  // }, []);
 
-  /**
-   * TODO: Handle task status update
-   * 
-   * Convenience handler specifically for status updates from the UI.
-   * 
-   * @param {string} taskId - The ID of the task to update
-   * @param {string} newStatus - The new status value
-   * @returns {Promise<void>} Promise that resolves when update is complete
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleTaskStatusUpdate = useCallback(async (
-    taskId: string, 
-    newStatus: string
-  ): Promise<void> => {
-    // TODO: Implement status update handler
-    // 1. Call useClickUp's updateTaskStatus function
-    // 2. Update local tasks state
-    // 3. Handle errors and show feedback
+  // /**
+  //  * TODO: Handle task status update
+  //  * 
+  //  * Convenience handler specifically for status updates from the UI.
+  //  * 
+  //  * @param {string} taskId - The ID of the task to update
+  //  * @param {string} newStatus - The new status value
+  //  * @returns {Promise<void>} Promise that resolves when update is complete
+  //  */
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const handleTaskStatusUpdate = useCallback(async (
+  //   taskId: string, 
+  //   newStatus: string
+  // ): Promise<void> => {
+  //   // TODO: Implement status update handler
+  //   // 1. Call useClickUp's updateTaskStatus function
+  //   // 2. Update local tasks state
+  //   // 3. Handle errors and show feedback
     
-    console.log('TODO: handleTaskStatusUpdate called with:', { taskId, newStatus });
-    // throw new Error('handleTaskStatusUpdate not yet implemented');
-  }, []);
+  //   console.log('TODO: handleTaskStatusUpdate called with:', { taskId, newStatus });
+  //   // throw new Error('handleTaskStatusUpdate not yet implemented');
+  // }, []);
 
-  /**
-   * TODO: Handle task date update (when task is moved or resized on graph)
-   * 
-   * This will be called when tasks are repositioned or resized on the graph.
-   * Converts graph coordinates/days to ClickUp date format and updates via API.
-   * 
-   * @param {string} taskId - The ID of the task to update
-   * @param {number} newStartDay - New start day (relative to today, can be negative)
-   * @param {number} newDuration - New duration in days
-   * @returns {Promise<void>} Promise that resolves when update is complete
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleTaskDateUpdate = useCallback(async (
-    taskId: string, 
-    newStartDay: number, 
-    newDuration: number
-  ): Promise<void> => {
-    // TODO: Implement date update handler
-    // 1. Calculate actual dates from newStartDay and newDuration
-    //    - newStartDay is relative to today (0 = today, negative = past, positive = future)
-    //    - Calculate start_date: today + newStartDay days
-    //    - Calculate due_date: start_date + (newDuration - 1) days (duration is inclusive)
-    // 2. Normalize dates to midnight
-    // 3. Convert to ClickUp format (timestamp or ISO string)
-    // 4. Call useClickUp's updateTaskDates function
-    // 5. Update local tasks state
-    // 6. Handle errors and show feedback
+  // /**
+  //  * TODO: Handle task date update (when task is moved or resized on graph)
+  //  * 
+  //  * This will be called when tasks are repositioned or resized on the graph.
+  //  * Converts graph coordinates/days to ClickUp date format and updates via API.
+  //  * 
+  //  * @param {string} taskId - The ID of the task to update
+  //  * @param {number} newStartDay - New start day (relative to today, can be negative)
+  //  * @param {number} newDuration - New duration in days
+  //  * @returns {Promise<void>} Promise that resolves when update is complete
+  //  */
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const handleTaskDateUpdate = useCallback(async (
+  //   taskId: string, 
+  //   newStartDay: number, 
+  //   newDuration: number
+  // ): Promise<void> => {
+  //   // TODO: Implement date update handler
+  //   // 1. Calculate actual dates from newStartDay and newDuration
+  //   //    - newStartDay is relative to today (0 = today, negative = past, positive = future)
+  //   //    - Calculate start_date: today + newStartDay days
+  //   //    - Calculate due_date: start_date + (newDuration - 1) days (duration is inclusive)
+  //   // 2. Normalize dates to midnight
+  //   // 3. Convert to ClickUp format (timestamp or ISO string)
+  //   // 4. Call useClickUp's updateTaskDates function
+  //   // 5. Update local tasks state
+  //   // 6. Handle errors and show feedback
     
-    console.log('TODO: handleTaskDateUpdate called with:', { taskId, newStartDay, newDuration });
-    // throw new Error('handleTaskDateUpdate not yet implemented');
-  }, []);
+  //   console.log('TODO: handleTaskDateUpdate called with:', { taskId, newStartDay, newDuration });
+  //   // throw new Error('handleTaskDateUpdate not yet implemented');
+  // }, []);
 
-  /**
-   * TODO: Handle batch task updates
-   * 
-   * Updates multiple tasks at once (e.g., when multiple tasks are moved/resized).
-   * More efficient than individual updates.
-   * 
-   * @param {Array<{taskId: string, changes: Object}>} updates - Array of task updates
-   * @returns {Promise<void>} Promise that resolves when all updates are complete
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleBatchTaskUpdate = useCallback(async (
-    updates: Array<{ 
-      taskId: string; 
-      changes: { startDay?: number; duration?: number; status?: string } 
-    }>
-  ): Promise<void> => {
-    // TODO: Implement batch update handler
-    // 1. Convert all updates to ClickUp API format
-    // 2. Call useClickUp's batchUpdateTasks function
-    // 3. Update local tasks state
-    // 4. Handle partial failures appropriately
-    // 5. Show user feedback
+  // /**
+  //  * TODO: Handle batch task updates
+  //  * 
+  //  * Updates multiple tasks at once (e.g., when multiple tasks are moved/resized).
+  //  * More efficient than individual updates.
+  //  * 
+  //  * @param {Array<{taskId: string, changes: Object}>} updates - Array of task updates
+  //  * @returns {Promise<void>} Promise that resolves when all updates are complete
+  //  */
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const handleBatchTaskUpdate = useCallback(async (
+  //   updates: Array<{ 
+  //     taskId: string; 
+  //     changes: { startDay?: number; duration?: number; status?: string } 
+  //   }>
+  // ): Promise<void> => {
+  //   // TODO: Implement batch update handler
+  //   // 1. Convert all updates to ClickUp API format
+  //   // 2. Call useClickUp's batchUpdateTasks function
+  //   // 3. Update local tasks state
+  //   // 4. Handle partial failures appropriately
+  //   // 5. Show user feedback
     
-    console.log('TODO: handleBatchTaskUpdate called with:', updates);
-    // throw new Error('handleBatchTaskUpdate not yet implemented');
-  }, []);
+  //   console.log('TODO: handleBatchTaskUpdate called with:', updates);
+  //   // throw new Error('handleBatchTaskUpdate not yet implemented');
+  // }, []);
 
   // Note: All write operations removed (save, delete, add) - read-only mode
 
