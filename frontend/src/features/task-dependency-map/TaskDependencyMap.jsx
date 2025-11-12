@@ -95,7 +95,7 @@ const TaskDependencyMap = ({
         onPointerDown={(e) => {
           // Only handle pan events if not clicking on a task or button
           // This prevents panning when interacting with task elements
-          if (!e.target.closest('.task-bar, .dependency-edge, button')) {
+          if (!e.target.closest('.dependency-edge, button')) {
             onPointerDown(e);
           }
         }}
