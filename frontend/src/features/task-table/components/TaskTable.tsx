@@ -1,185 +1,38 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+/**
+ * TaskTable Component
+ * 
+ * A comprehensive dashboard component that displays ClickUp tasks in a table layout
+ * with status grouping and expandable subtasks. Features include:
+ * - Team selection dropdown
+ * - Status-grouped table sections with expandable subtasks
+ * - Comments column with task comments/descriptions
+ * - Time remaining calculations
+ * - Task refresh functionality
+ * - Loading and error states
+ * - API token input (if not provided via props)
+ * 
+ * This component serves as the main task management interface and can notify
+ * parent components when tasks are loaded via the onTasksUpdate callback.
+ * 
+ * @fileoverview Main dashboard component for displaying ClickUp tasks in table format
+ */
 
-interface ClickUpUser {
-  id: number;
-  username: string;
-  email: string;
-  color: string;
-  profilePicture?: string;
+import React, { useMemo, useState, useEffect } from 'react';
+import { useClickUp } from '../../../shared/hooks/useClickUp';
+
+/**
+ * Props for TaskTable component
+ */
+interface TaskTableProps {
+  /** ClickUp API token for authentication */
+  apiToken?: string;
+  /** Callback function called when tasks are loaded/updated */
+  onTasksUpdate?: (tasks: any[]) => void;
 }
 
-interface ClickUpStatus {
-  status: string;
-  color: string;
-  type: string;
-  orderindex: number;
-}
-
-interface ClickUpPriority {
-  id: string;
-  priority: string;
-  color: string;
-  orderindex: string;
-}
-
-interface ClickUpTask {
-  id: string;
-  name: string;
-  text_content: string;
-  description: string;
-  status: ClickUpStatus;
-  orderindex: string;
-  date_created: string;
-  date_updated: string;
-  date_closed?: string;
-  date_done?: string;
-  creator: ClickUpUser;
-  assignees: ClickUpUser[];
-  watchers: ClickUpUser[];
-  checklists: any[];
-  tags: any[];
-  parent?: string;
-  priority?: ClickUpPriority;
-  due_date?: string;
-  start_date?: string;
-  points?: number;
-  time_estimate?: number;
-  time_spent?: number;
-  custom_fields: any[];
-  dependencies: string[];
-  linked_tasks: string[];
-  team_id: string;
-  url: string;
-  permission_level: string;
-  list: any;
-  project: any;
-  folder: any;
-  space: any;
-}
-
-interface Team {
-  id: string;
-  name: string;
-  color?: string;
-}
-
-const useClickUp = (apiToken: string) => {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [tasks, setTasks] = useState<ClickUpTask[]>([]);
-  const [taskComments, setTaskComments] = useState<Map<string, string[]>>(new Map());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
-
-  const baseUrl = 'https://api.clickup.com/api/v2';
-  const headers = useMemo(() => ({
-    'Authorization': apiToken,
-    'Content-Type': 'application/json'
-  }), [apiToken]);
-
-  const fetchTeams = useCallback(async () => {
-    if (!apiToken) return;
-    try {
-      setLoading(true);
-      setError('');
-      
-      const response = await fetch(`${baseUrl}/team`, { headers });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setTeams(data.teams || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch teams');
-    } finally {
-      setLoading(false);
-    }
-  }, [apiToken, headers]);
-
-  const fetchTasks = useCallback(async (teamId: string, params: Record<string, string> = {}) => {
-    if (!apiToken || !teamId) return;
-    try {
-      setLoading(true);
-      setError('');
-      
-      const queryParams = new URLSearchParams({
-        include_closed: 'false',
-        subtasks: 'true', 
-        ...params
-      });
-     
-      const response = await fetch(`${baseUrl}/team/${teamId}/task?${queryParams}`, { headers });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      const fetchedTasks = data.tasks || [];
-      setTasks(fetchedTasks);
-      
-      // Fetch comments for each task
-      const commentsMap = new Map<string, string[]>();
-      await Promise.all(
-        fetchedTasks.map(async (task: ClickUpTask) => {
-          try {
-            const commentResponse = await fetch(`${baseUrl}/task/${task.id}/comment`, { headers });
-            if (commentResponse.ok) {
-              const commentData = await commentResponse.json();
-              const comments = commentData.comments || [];
-              if (comments.length > 0) {
-                // Get all comments
-                const allComments = comments.map((c: any) => c.comment_text || '').filter((text: string) => text.trim());
-                commentsMap.set(task.id, allComments);
-              }
-            }
-          } catch (err) {
-            // Silently fail for individual comment fetches
-            console.error(`Failed to fetch comments for task ${task.id}:`, err);
-          }
-        })
-      );
-      
-      setTaskComments(commentsMap);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
-    } finally {
-      setLoading(false);
-    }
-  }, [apiToken, headers]);
-
-  const getMyTasks = useCallback((userEmail: string): ClickUpTask[] => {
-    return tasks.filter(task => 
-      task.assignees.some(assignee => assignee.email === userEmail)
-    );
-  }, [tasks]);
-
-  const getTasksByStatus = useCallback((status: string): ClickUpTask[] => {
-    return tasks.filter(task => task.status.status.toLowerCase() === status.toLowerCase());
-  }, [tasks]);
-
-  const getOverdueTasks = useCallback((): ClickUpTask[] => {
-    const now = Date.now();
-    return tasks.filter(task => 
-      task.due_date && 
-      parseInt(task.due_date) < now && 
-      task.status.type !== 'closed'
-    );
-  }, [tasks]);
-
-  return {
-    teams,
-    tasks,
-    taskComments,
-    loading,
-    error,
-    fetchTeams,
-    fetchTasks,
-    getMyTasks,
-    getTasksByStatus,
-    getOverdueTasks
-  };
-};
-
+/**
+ * Internal task representation for display
+ */
 type Task = {
   id: string;
   name: string;
@@ -192,7 +45,34 @@ type Task = {
   subtasks?: Task[];
 };
 
-function formatDate(d?: string) {
+/**
+ * Column width constants for table layout
+ */
+const COL_WIDTHS = {
+  assignee: 160,
+  dueDate: 120,
+  timeRemaining: 140,
+  priority: 100,
+  status: 120,
+  comments: 200,
+  nameCalc: `calc(100% - ${160 + 120 + 140 + 100 + 120 + 200}px)`,
+};
+
+/**
+ * Status color mapping for badges
+ */
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  "To Do": { bg: "#f3f0ff", text: "#6b46ff" },
+  "In Progress": { bg: "#fff7ed", text: "#ff7a00" },
+  Review: { bg: "#eff6ff", text: "#1e40af" },
+  Complete: { bg: "#ecfdf5", text: "#059669" },
+  Unknown: { bg: "#f1f5f9", text: "#374151" },
+};
+
+/**
+ * Formats a date string or timestamp into a localized date string
+ */
+function formatDate(d?: string): string {
   if (!d) return "-";
   try {
     const isNumeric = /^\d+$/.test(d);
@@ -204,6 +84,9 @@ function formatDate(d?: string) {
   }
 }
 
+/**
+ * Calculates time remaining until due date or time overdue
+ */
 function calculateTimeRemaining(dueDate?: string): string {
   if (!dueDate) return "-";
   
@@ -236,24 +119,19 @@ function calculateTimeRemaining(dueDate?: string): string {
   }
 }
 
-const COL_WIDTHS = {
-  assignee: 160,
-  dueDate: 120,
-  timeRemaining: 140,
-  priority: 100,
-  status: 120,
-  comments: 200,
-  nameCalc: `calc(100% - ${160 + 120 + 140 + 100 + 120 + 200}px)`,
-};
+/**
+ * Converts a string to title case
+ */
+function toTitleCase(str: string): string {
+  if (!str) return str;
+  return str.toLowerCase().split(' ').map(word => {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }).join(' ');
+}
 
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  "To Do": { bg: "#f3f0ff", text: "#6b46ff" },
-  "In Progress": { bg: "#fff7ed", text: "#ff7a00" },
-  Review: { bg: "#eff6ff", text: "#1e40af" },
-  Complete: { bg: "#ecfdf5", text: "#059669" },
-  Unknown: { bg: "#f1f5f9", text: "#374151" },
-};
-
+/**
+ * Avatar component for displaying user initials
+ */
 function Avatar({ name }: { name?: string }) {
   const initials = (name || "—")
     .split(" ")
@@ -285,7 +163,10 @@ function Avatar({ name }: { name?: string }) {
   );
 }
 
-function countWithSubtasks(tasks: Task[]) {
+/**
+ * Counts tasks including all subtasks recursively
+ */
+function countWithSubtasks(tasks: Task[]): number {
   let total = 0;
   function walk(ts: Task[]) {
     for (const t of ts) {
@@ -297,7 +178,10 @@ function countWithSubtasks(tasks: Task[]) {
   return total;
 }
 
-function sortTasksByDueDateAndName(arr: Task[]) {
+/**
+ * Sorts tasks by due date first, then by name
+ */
+function sortTasksByDueDateAndName(arr: Task[]): Task[] {
   const copy = arr.slice();
   copy.sort((x, y) => {
     if (x.dueDate && y.dueDate) {
@@ -310,32 +194,68 @@ function sortTasksByDueDateAndName(arr: Task[]) {
   return copy;
 }
 
-function toTitleCase(str: string): string {
-  if (!str) return str;
-  return str.toLowerCase().split(' ').map(word => {
-    return word.charAt(0).toUpperCase() + word.slice(1);
-  }).join(' ');
-}
+/**
+ * TaskTable component - Main dashboard for ClickUp tasks
+ * 
+ * Displays a comprehensive table-based dashboard with status grouping,
+ * expandable subtasks, and comments.
+ * 
+ * @param {TaskTableProps} props - Component props
+ * @returns {JSX.Element} A table-based dashboard with task management interface
+ */
+export const TaskTable: React.FC<TaskTableProps> = ({ 
+  apiToken: propApiToken,
+  onTasksUpdate
+}) => {
+  // Local state for API token if not provided via props
+  // Gets token from environment variable (VITE_CLICKUP_API_TOKEN)
+  const [localApiToken, setLocalApiToken] = useState<string>(
+    import.meta.env.VITE_CLICKUP_API_TOKEN ?? ''
+  );
+  const apiToken = propApiToken || localApiToken;
 
-export default function TaskPage() {
-  const [apiToken, setApiToken] = useState<string>(import.meta.env.VITE_CLICKUP_API_TOKEN ?? '');
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+  const { 
+    teams, 
+    tasks: clickUpTasks, 
+    taskComments,
+    loading, 
+    error, 
+    fetchTeams, 
+    fetchTasks
+  } = useClickUp(apiToken);
+
+  const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
-  const { teams, tasks: clickUpTasks, taskComments, loading, error, fetchTeams, fetchTasks } = useClickUp(apiToken);
 
+  // Fetch teams on component mount
   useEffect(() => {
     if (apiToken) {
       fetchTeams();
     }
   }, [apiToken, fetchTeams]);
 
+  // Auto-select first team when teams are loaded
   useEffect(() => {
-    if (selectedTeamId && apiToken) {
-      fetchTasks(selectedTeamId);
+    if (teams.length > 0 && !selectedTeam) {
+      setSelectedTeam(teams[0].id);
     }
-  }, [selectedTeamId, apiToken, fetchTasks]);
+  }, [teams, selectedTeam]);
 
+  // Fetch tasks when team is selected
+  useEffect(() => {
+    if (selectedTeam && apiToken) {
+      fetchTasks(selectedTeam);
+    }
+  }, [selectedTeam, apiToken, fetchTasks]);
+
+  // Update parent component when tasks change
+  useEffect(() => {
+    if (clickUpTasks.length > 0 && onTasksUpdate) {
+      onTasksUpdate(clickUpTasks);
+    }
+  }, [clickUpTasks, onTasksUpdate]);
+
+  // Convert ClickUp tasks to internal format with parent-child relationships
   const convertedTasks: Task[] = useMemo(() => {
     const taskMap = new Map<string, Task>();
     const topLevelTasks: Task[] = [];
@@ -343,7 +263,7 @@ export default function TaskPage() {
     for (const task of clickUpTasks) {
       const normalizedStatus = toTitleCase(task.status.status);
       
-      // Get comment from the taskComments map if available, otherwise use description
+      // Get comments from the taskComments map if available, otherwise use description
       let comments = taskComments.get(task.id) || [];
       if (comments.length === 0 && task.description && task.description.trim()) {
         comments = [task.description.trim()];
@@ -351,12 +271,17 @@ export default function TaskPage() {
         comments = [task.text_content.trim()];
       }
 
+      // Handle due_date as both string and number (matching API format)
+      const dueDateStr = task.due_date 
+        ? (typeof task.due_date === 'number' ? String(task.due_date) : task.due_date)
+        : undefined;
+
       const convertedTask: Task = {
         id: task.id,
         name: task.name,
         assignee: task.assignees[0]?.username,
-        dueDate: task.due_date,
-        timeRemaining: calculateTimeRemaining(task.due_date),
+        dueDate: dueDateStr,
+        timeRemaining: calculateTimeRemaining(dueDateStr),
         priority: task.priority?.priority?.toLowerCase(),
         status: normalizedStatus,
         comments: comments.length > 0 ? comments : undefined,
@@ -365,6 +290,7 @@ export default function TaskPage() {
       taskMap.set(task.id, convertedTask);
     }
 
+    // Build parent-child relationships
     for (const task of clickUpTasks) {
       const convertedTask = taskMap.get(task.id)!;
       
@@ -381,20 +307,18 @@ export default function TaskPage() {
     }
 
     return topLevelTasks.filter(task => !task.id.includes('.'));
-    
   }, [clickUpTasks, taskComments]);
 
-  const tasksToDisplay = convertedTasks;
-
+  // Group tasks by status
   const grouped = useMemo(() => {
     const map = new Map<string, Task[]>();
-    for (const t of tasksToDisplay) {
+    for (const t of convertedTasks) {
       const status = t.status ?? "Unknown";
       if (!map.has(status)) map.set(status, []);
       map.get(status)!.push(t);
     }
     
-    const preferredOrder = ["To Do", "In Progress", "Review", "Complete"]; 
+    const preferredOrder = ["To Do", "In Progress", "Review", "Complete"];
 
     const sortedKeys = Array.from(map.keys()).sort((a, b) => {
       const ia = preferredOrder.indexOf(a);
@@ -430,8 +354,16 @@ export default function TaskPage() {
       return [k, arr] as [string, Task[]];
     });
     return groupedSorted;
-  }, [tasksToDisplay]);
+  }, [convertedTasks]);
 
+  /**
+   * Toggles expansion state for a task
+   */
+  const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
+
+  /**
+   * Renders task rows recursively with expandable subtasks
+   */
   const renderTaskRows = (task: Task, depth = 0): React.ReactNode => {
     const hasSub = !!(task.subtasks && task.subtasks.length);
     const isOpen = !!expanded[task.id];
@@ -500,8 +432,8 @@ export default function TaskPage() {
             <div 
               style={{ 
                 fontSize: 12, 
-                color: task.timeRemaining?.includes('overdue') ? "#dc2626" : task.timeRemaining === "Due today" ? "#ff7a00" : task.timeRemaining?.includes("h") && !task.timeRemaining.includes("d") ? "#d20000ff" : "#6b7280",
-                fontWeight: task.timeRemaining?.includes('overdue') || task.timeRemaining === "Due today" ? 600 : 400
+                color: task.timeRemaining?.includes('overdue') ? "#dc2626" : task.timeRemaining === "Due now" ? "#ff7a00" : task.timeRemaining?.includes("h") && !task.timeRemaining.includes("d") ? "#dc2626" : "#6b7280",
+                fontWeight: task.timeRemaining?.includes('overdue') || task.timeRemaining === "Due now" ? 600 : 400
               }}
             >
               {task.timeRemaining || "-"}
@@ -565,6 +497,34 @@ export default function TaskPage() {
     );
   };
 
+
+  if (loading && teams.length === 0) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
+        <div style={{ textAlign: "center" }}>
+          <p style={{ fontSize: "1.25rem", color: "#6b7280" }}>Loading ClickUp data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && teams.length === 0) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", padding: 20 }}>
+        <div style={{ maxWidth: "28rem", width: "100%", padding: "1.5rem", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.5rem" }}>
+          <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#dc2626", marginBottom: "1rem" }}>Error Loading Data</h2>
+          <p style={{ color: "#dc2626", marginBottom: "1rem" }}>{error}</p>
+          <button 
+            onClick={fetchTeams}
+            style={{ width: "100%", padding: "0.5rem 1rem", background: "#dc2626", color: "#fff", borderRadius: "0.5rem", border: "none", cursor: "pointer" }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: 20, fontFamily: "Inter, system-ui, -apple-system, sans-serif", background: "#f8fafc", minHeight: "100vh" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
@@ -574,8 +534,8 @@ export default function TaskPage() {
             <input
               type="password"
               placeholder="Enter ClickUp API Token"
-              value={apiToken}
-              onChange={(e) => setApiToken(e.target.value)}
+              value={localApiToken}
+              onChange={(e) => setLocalApiToken(e.target.value)}
               style={{
                 padding: "8px 12px",
                 borderRadius: 8,
@@ -587,8 +547,8 @@ export default function TaskPage() {
           )}
           {teams.length > 0 && (
             <select
-              value={selectedTeamId}
-              onChange={(e) => setSelectedTeamId(e.target.value)}
+              value={selectedTeam}
+              onChange={(e) => setSelectedTeam(e.target.value)}
               style={{
                 padding: "8px 12px",
                 borderRadius: 8,
@@ -637,7 +597,7 @@ export default function TaskPage() {
         </div>
       )}
 
-      {!loading && tasksToDisplay.length === 0 && apiToken && selectedTeamId && (
+      {!loading && convertedTasks.length === 0 && apiToken && selectedTeam && (
         <div style={{ textAlign: "center", padding: 40, color: "#6b7280" }}>
           No tasks found for this team.
         </div>
@@ -695,4 +655,4 @@ export default function TaskPage() {
       )}
     </div>
   );
-}
+};
