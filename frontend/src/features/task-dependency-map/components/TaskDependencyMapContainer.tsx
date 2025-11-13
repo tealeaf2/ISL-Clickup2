@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTaskData } from '../../../shared/hooks/useTaskData';
 import { usePanZoom } from '../../../shared/hooks/usePanZoom';
 import { useTaskSelection } from '../../../shared/hooks/useTaskSelection';
@@ -6,7 +6,7 @@ import { useTaskRelationships } from '../../../shared/hooks/useTaskRelationships
 // @ts-ignore - JavaScript component
 import TaskDependencyMap from '../TaskDependencyMap';
 import { LAYOUT_CONSTANTS } from '../../../shared/constants';
-import { 
+import {
   computeTaskRect
 } from '../../../shared/utils';
 import type { Task, TaskOptions, TaskPriority } from '../../../shared/types';
@@ -34,7 +34,7 @@ import type { Task, TaskOptions, TaskPriority } from '../../../shared/types';
 const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[] }) => {
   // Debug: Log received tasks
   console.log('TaskDependencyMapContainer: Received clickUpTasks:', clickUpTasks?.length || 0);
-  
+
   /**
    * Converts ClickUp API task format to internal graph task format
    * 
@@ -51,16 +51,19 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
    */
   // Get a consistent "today" reference for all date calculations
   // This must be the same reference used for both task conversion and grid calculation
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Normalize to midnight at the component level
-  
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
   const convertClickUpTasksToGraphTasks = (clickUpTasks: any[], todayRef: Date): Task[] => {
-    
+
     // Safety check: ensure clickUpTasks is an array
     if (!Array.isArray(clickUpTasks)) {
       return [];
     }
-    
+
     return clickUpTasks.map((clickUpTask, index) => {
       // Convert ClickUp status to our status format
       // Note: 'complete' tasks are removed by ClickUp, so we don't map them
@@ -69,42 +72,42 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
         'in progress': 'in-progress',
         'blocked': 'blocked'
       };
-      
+
       const status = statusMap[clickUpTask.status?.status?.toLowerCase()] || 'todo';
-      
+
       // Convert ClickUp priority to our priority format
       // Since ClickUp priority values match our internal format, we just validate and default
       const clickUpPriority = clickUpTask.priority?.priority?.toLowerCase();
       const validPriorities: readonly TaskPriority[] = ['urgent', 'high', 'normal', 'low', 'none'] as const;
-      const priority: TaskPriority = (validPriorities.includes(clickUpPriority as TaskPriority) 
-        ? clickUpPriority 
+      const priority: TaskPriority = (validPriorities.includes(clickUpPriority as TaskPriority)
+        ? clickUpPriority
         : 'normal') as TaskPriority;
-      
+
       // Helper function to normalize a date to midnight for accurate day calculations
       const normalizeToMidnight = (date: Date): Date => {
         const normalized = new Date(date);
         normalized.setHours(0, 0, 0, 0);
         return normalized;
       };
-      
+
       // Use the consistent today reference passed in
       const todayMidnight = normalizeToMidnight(todayRef);
-      
+
       // Use API-provided start_date and due_date directly
       let startDate: Date | null = null;
       let dueDate: Date | null = null;
-      
+
       // Parse start_date from API - this is the actual task start date
       // ClickUp API may return dates as numbers (timestamps) or strings (ISO or timestamp strings)
       if (clickUpTask.start_date !== null && clickUpTask.start_date !== undefined) {
         const startDateValue = clickUpTask.start_date;
         try {
           let parsed: Date;
-          
+
           // Handle number (timestamp in milliseconds)
           if (typeof startDateValue === 'number') {
             parsed = new Date(startDateValue);
-          } 
+          }
           // Handle string that looks like a timestamp
           else if (typeof startDateValue === 'string' && /^\d+$/.test(startDateValue)) {
             parsed = new Date(parseInt(startDateValue, 10));
@@ -113,7 +116,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
           else {
             parsed = new Date(startDateValue);
           }
-          
+
           // Check if date is valid
           if (!isNaN(parsed.getTime())) {
             startDate = normalizeToMidnight(parsed);
@@ -124,18 +127,18 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
           console.warn(`Failed to parse start_date for task ${clickUpTask.id}:`, startDateValue, e);
         }
       }
-      
+
       // Parse due_date from API - this is the actual task end date
       // ClickUp API may return dates as numbers (timestamps) or strings (ISO or timestamp strings)
       if (clickUpTask.due_date !== null && clickUpTask.due_date !== undefined) {
         const dueDateValue = clickUpTask.due_date;
         try {
           let parsed: Date;
-          
+
           // Handle number (timestamp in milliseconds)
           if (typeof dueDateValue === 'number') {
             parsed = new Date(dueDateValue);
-          } 
+          }
           // Handle string that looks like a timestamp
           else if (typeof dueDateValue === 'string' && /^\d+$/.test(dueDateValue)) {
             parsed = new Date(parseInt(dueDateValue, 10));
@@ -144,7 +147,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
           else {
             parsed = new Date(dueDateValue);
           }
-          
+
           // Check if date is valid
           if (!isNaN(parsed.getTime())) {
             dueDate = normalizeToMidnight(parsed);
@@ -155,21 +158,21 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
           console.warn(`Failed to parse due_date for task ${clickUpTask.id}:`, dueDateValue, e);
         }
       }
-      
+
       // Debug: Log parsed dates for verification
       if (clickUpTask.start_date || clickUpTask.due_date) {
         console.log(`Date parsing for "${clickUpTask.name}": start_date raw=${clickUpTask.start_date} -> parsed=${startDate?.toISOString().split('T')[0] || 'null'}, due_date raw=${clickUpTask.due_date} -> parsed=${dueDate?.toISOString().split('T')[0] || 'null'}`);
       }
-      
+
       // Calculate start day relative to today using the actual start_date from API
       // If no start_date, use due_date as fallback. If neither exists, spread tasks.
       let startDay: number;
       let duration = 1; // Default duration
-      
+
       if (startDate) {
         // Use actual start_date from API to position the task
         startDay = Math.floor((startDate.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
-        
+
         // Calculate duration from start_date to due_date (inclusive)
         if (dueDate && dueDate >= startDate) {
           // Duration is the number of days from start to end (inclusive)
@@ -192,19 +195,19 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
         startDay = index % 7; // Spread across 7 days (0-6)
         duration = 1;
       }
-      
+
       // Ensure startDay is never NaN
       if (isNaN(startDay)) {
         console.warn(`Invalid startDay calculation for task ${clickUpTask.id}, using fallback`);
         startDay = index % 7; // Fallback to index-based spreading
       }
-      
+
       // Allow negative startDay to represent overdue tasks (don't clamp to 0)
       // Negative values mean the task started before today
-      
+
       // Get owner from assignees only - no creator fallback
       let owner = 'Unassigned'; // Default to Unassigned
-      
+
       // Check if task has assignees
       if (clickUpTask.assignees && clickUpTask.assignees.length > 0) {
         const firstAssignee = clickUpTask.assignees[0];
@@ -219,16 +222,16 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
           owner = clickUpTask.assignee.username;
         }
       }
-      
+
       // Final safety check - ensure owner is never empty
       if (!owner || owner.trim() === '') {
         owner = 'Unassigned';
       }
-      
+
       // Debug logging (after owner is assigned)
       const daysDiff = startDate && dueDate ? Math.floor((dueDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) : 'N/A';
       console.log(`Task "${clickUpTask.name}": start_date=${clickUpTask.start_date} (parsed: ${startDate?.toISOString().split('T')[0] || 'null'}), due_date=${clickUpTask.due_date} (parsed: ${dueDate?.toISOString().split('T')[0] || 'null'}), daysDiff=${daysDiff}, duration=${duration}, startDay=${startDay}, today=${todayRef.toISOString().split('T')[0]}`);
-      
+
       return {
         id: clickUpTask.id,
         name: clickUpTask.name,
@@ -246,7 +249,9 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
   };
 
   // Convert ClickUp tasks to graph format using the consistent today reference
-  const convertedTasks = convertClickUpTasksToGraphTasks(clickUpTasks || [], today);
+  const convertedTasks = useMemo(() => {
+    return convertClickUpTasksToGraphTasks(clickUpTasks || [], today);
+  }, [clickUpTasks, today]);
 
   /** Display and behavior options for the dependency graph */
   const [options] = useState<TaskOptions>({
@@ -260,18 +265,18 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
   const { tasks, setTasks, tasksById, dependencies } = useTaskData(convertedTasks);
 
   /** Task selection state - manages which task is selected and modal states */
-  const { 
+  const {
     selectedId,           // ID of currently selected task
     editOpen,            // Whether detail modal is open
     modalPosition,       // Screen position for modal placement
     setSelectedId,
-    setEditOpen, 
+    setEditOpen,
     selectTask            // Function to select task with position
   } = useTaskSelection();
 
   /** Task relationships hook - only used for read-only blocker information */
   const { getBlockers } = useTaskRelationships(tasks, setTasks);
-  
+
   /**
    * Assigns lanes (vertical rows) to tasks based on owner and hierarchy
    * 
@@ -288,60 +293,60 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
    */
   const laneAssignment: Record<string, number> = {};
   let currentLane = 0;
-  
+
   // Get unique owners and sort them alphabetically for consistent ordering
   const uniqueOwners = Array.from(new Set((tasks || []).map(task => task.owner))).sort();
-  
+
   // Assign lanes by owner with proper hierarchy (parents before children)
   uniqueOwners.forEach(owner => {
     const ownerTasks = (tasks || []).filter(task => task.owner === owner);
-    
+
     // Separate parent tasks (no parent) from child tasks (have parent)
     const parentTasks = ownerTasks.filter(task => !task.parentId);
     const childTasks = ownerTasks.filter(task => task.parentId);
-    
+
     // Assign lanes to parent tasks first
     parentTasks.forEach(task => {
       laneAssignment[task.id] = currentLane;
       currentLane++;
     });
-    
+
     // Group child tasks by parent
     const childrenByParent = childTasks.reduce((acc, child) => {
       if (!acc[child.parentId!]) acc[child.parentId!] = [];
       acc[child.parentId!].push(child);
       return acc;
     }, {} as Record<string, Task[]>);
-    
+
     // Assign lanes to child tasks, organized by parent
     Object.entries(childrenByParent).forEach(([_parentId, children]) => {
       children.forEach(child => {
         laneAssignment[child.id] = currentLane;
         currentLane++;
       });
-      
+
       // Add spacing after each parent's children
       if (children.length > 0) {
         currentLane++;
       }
     });
-    
+
     // Add spacing between different owners
     if (owner !== uniqueOwners[uniqueOwners.length - 1]) {
       currentLane++;
     }
   });
-  
+
   // Debug: Check lane assignments
-  
+
   // Calculate calendar days - need to show past dates for overdue tasks
   // Day 0 = today, negative values = past dates (overdue tasks)
   // Use the same 'today' reference defined above for consistency
-  
+
   // Find the earliest task start day (may be negative for overdue tasks)
   const taskStartDays = (tasks || []).map(task => isNaN(task.start) ? 0 : task.start);
   const minTaskStartDay = taskStartDays.length > 0 ? Math.min(...taskStartDays) : 0;
-  
+
   // Find the latest task end day
   const taskEndDays = (tasks || []).map(task => {
     const start = isNaN(task.start) ? 0 : task.start;
@@ -349,27 +354,27 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     return start + duration;
   });
   const maxTaskEndDay = taskEndDays.length > 0 ? Math.max(...taskEndDays) : 0;
-  
+
   // Calculate grid limits: exactly 2 days before earliest task start and 2 days after latest task end
   // If no tasks, default to showing a week around today
   const earliestStart = tasks && tasks.length > 0 ? minTaskStartDay - 2 : -7;
   const latestEnd = tasks && tasks.length > 0 ? maxTaskEndDay + 2 : 7;
-  
+
   // Calculate how many days before/after today to show
   // earliestStart is relative to today (negative = past), so daysBeforeToday should be earliestStart
   const daysBeforeToday = earliestStart; // Negative value (e.g., -14 means start 14 days before today)
   const daysAfterToday = latestEnd; // Positive value (e.g., 14 means end 14 days after today)
-  
+
   // Calculate the actual start date for the grid (before today)
   const gridStartDate = new Date(today);
   gridStartDate.setDate(today.getDate() + daysBeforeToday); // daysBeforeToday is negative or 0
-  
+
   // Total days to display: from daysBeforeToday to daysAfterToday
   const totalDays = daysAfterToday - daysBeforeToday;
-  
+
   // The offset for day 0 (today) - how many days from the grid start
   const day0Offset = -daysBeforeToday; // This is always positive since daysBeforeToday <= 0
-  
+
   // Extend content width to include space for owner labels on the left (250px for labels + some margin)
   const ownerLabelArea = 250; // Space reserved for owner labels on the left side
   const contentWidth = Math.max(800, ownerLabelArea + LAYOUT_CONSTANTS.PADDING * 2 + totalDays * LAYOUT_CONSTANTS.DAY_WIDTH);
@@ -401,10 +406,10 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     // Ensure task has valid numeric values (allow negative start for overdue tasks)
     const validStart = isNaN(task.start) ? 0 : task.start; // Don't clamp - allow negative for overdue tasks
     const validDuration = isNaN(task.duration) ? 1 : Math.max(1, task.duration);
-    
+
     // Get hierarchy-based lane
     const hierarchyLane = laneAssignment[task.id] || 0;
-    
+
     // Create modified task for rectangle calculation
     // task.start is already calculated as days from today based on start_date from API
     const taskForRect = {
@@ -413,7 +418,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
       duration: validDuration,
       lane: hierarchyLane
     };
-    
+
     return {
       ...task,
       lane: hierarchyLane, // Update the lane with the assigned lane
@@ -501,7 +506,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
   //   // 5. Update local tasks state with the response
   //   // 6. Handle loading states and errors
   //   // 7. Show user feedback (success/error message)
-    
+
   //   console.log('TODO: handleTaskUpdate called with:', { taskId, changes });
   //   // throw new Error('handleTaskUpdate not yet implemented');
   // }, []);
@@ -524,7 +529,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
   //   // 1. Call useClickUp's updateTaskStatus function
   //   // 2. Update local tasks state
   //   // 3. Handle errors and show feedback
-    
+
   //   console.log('TODO: handleTaskStatusUpdate called with:', { taskId, newStatus });
   //   // throw new Error('handleTaskStatusUpdate not yet implemented');
   // }, []);
@@ -556,7 +561,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
   //   // 4. Call useClickUp's updateTaskDates function
   //   // 5. Update local tasks state
   //   // 6. Handle errors and show feedback
-    
+
   //   console.log('TODO: handleTaskDateUpdate called with:', { taskId, newStartDay, newDuration });
   //   // throw new Error('handleTaskDateUpdate not yet implemented');
   // }, []);
@@ -583,7 +588,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
   //   // 3. Update local tasks state
   //   // 4. Handle partial failures appropriately
   //   // 5. Show user feedback
-    
+
   //   console.log('TODO: handleBatchTaskUpdate called with:', updates);
   //   // throw new Error('handleBatchTaskUpdate not yet implemented');
   // }, []);
@@ -609,7 +614,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     blockers: selectedTask ? getBlockers(selectedTask) : [],
     gridStartDate,  // The date when the grid starts (may be before today for overdue tasks)
     day0Offset,     // The offset in days from grid start to day 0 (today)
-    
+
     // Event handlers
     onZoomIn: handleZoomIn,
     onZoomOut: handleZoomOut,
@@ -630,7 +635,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
 
   // Debug: Log tasks state
   console.log('TaskDependencyMapContainer: tasks state:', tasks?.length || 0, 'convertedTasks:', convertedTasks?.length || 0);
-  
+
   // Show message if no tasks
   if (!tasks || tasks.length === 0) {
     return (

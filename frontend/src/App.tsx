@@ -12,7 +12,7 @@
  * - Task data fetched from ClickUp API (passed from TaskTable to DependencyGraph)
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Navigation from './components/Navigation'
 import TaskDependencyMapContainer from './features/task-dependency-map/components/TaskDependencyMapContainer'
 import { TaskTable } from './features/task-table/components/TaskTable'
@@ -56,13 +56,13 @@ function App() {
    * @param tasks - Array of tasks fetched from ClickUp API
    *                (ClickUpTask[] means an array/list of ClickUpTask objects)
    */
-  const handleTasksUpdate = (tasks: ClickUpTask[]) => {
+  const handleTasksUpdate = useCallback((tasks: ClickUpTask[]) => {
     console.log('App: Tasks updated, count:', tasks.length);
     // Update state with the new tasks array
     // setClickUpTasks is typed to accept ClickUpTask[] because useState<ClickUpTask[]>
     // was used on line 26, so TypeScript knows the setter function's type
     setClickUpTasks(tasks);
-  }
+  }, [])
 
   /**
    * Renders the appropriate page component based on currentPage state
