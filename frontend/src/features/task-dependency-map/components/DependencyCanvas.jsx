@@ -130,6 +130,35 @@ const DependencyCanvas = ({
   // Create tasks lookup for edge path calculation
   const tasksById = Object.fromEntries(tasks.map(task => [task.id, task]));
 
+
+  // Handles date textsize scaling
+
+  const pixelsPerDay = DAY_WIDTH * scale;
+  let dayStep = 1;
+  let fontSize = 18;
+  if (pixelsPerDay < 55){
+    dayStep = 2;
+    fontSize = 30;
+  }
+
+  // Make the legend text slightly smaller than the date labels
+  
+  const legendFontSize = fontSize * 0.6;
+  const legendBoxSize = Math.max(10, legendFontSize); // keep squares roughly in proportion
+  
+  // Legend layout scaling (12 was the original base font size)
+  const legendLayoutScale = legendFontSize / 12;
+
+  // Horizontal offset for the first item
+  const legendItemBaseX = 12 * legendLayoutScale;
+
+  // Horizontal gap between legend items (original gap was ~120px)
+  const legendItemGap = 120 * legendLayoutScale;
+
+  const baseLegendWidth = 460;                // original width
+  const legendWidth = baseLegendWidth * legendLayoutScale;
+  
+
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-auto" role="img" aria-label="Task dependency map">
       <defs>
@@ -150,11 +179,17 @@ const DependencyCanvas = ({
       <g transform={`translate(${pan.x}, ${pan.y}) scale(${scale})`}>
         {/* Background - covers entire content area including owner label area */}
         <rect x={0} y={0} width={contentWidth} height={contentHeight} fill="#f8fafc" />
+
         
 
         {/* Vertical day grid + labels */}
         {/* Grid starts after the owner label area (150px) */}
         {gridLines.map(({ x, day, date }) => {
+
+          // skip days that are not on the chosen step
+          if (day % dayStep !== 0) return null;
+
+
           // day 0 (today) is at day0Offset in the grid lines array
           const isDay0 = day === day0Offset;
           const isToday = date.toDateString() === new Date().toDateString();
@@ -162,6 +197,13 @@ const DependencyCanvas = ({
           const isHighlighted = isDay0 || isToday;
           // Grid lines are already calculated with owner label area offset, no need to add it again
           const gridLineX = x;
+
+          const label =
+          dayStep >= 30
+            ? date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+
           return (
             <g key={`v-${day}-${date.getTime()}`}>
               <line
@@ -175,11 +217,11 @@ const DependencyCanvas = ({
               <text 
                 x={gridLineX + 6} 
                 y={PADDING - 50} 
-                fontSize={12} 
+                fontSize={fontSize} 
                 fill={isHighlighted ? "#3b82f6" : "#374151"}
                 fontWeight={isHighlighted ? "bold" : "normal"}
               >
-                {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {label}
                 {isDay0 && ' (Today)'}
               </text>
             </g>
@@ -266,18 +308,46 @@ const DependencyCanvas = ({
         {/* Legend */}
         <g transform={`translate(${contentWidth - PADDING - 320}, ${PADDING - 80})`}>
           <rect
-            x={0}
+            x={5}
             y={0}
-            width={408}
+            width={legendWidth}
             height={40}
             rx={10}
             fill="#ffffff"
             stroke="#e5e7eb"
           />
-          <LegendItem x={12} y={14} color={STATUS_COLORS['in-progress']} label="In Progress" />
-          <LegendItem x={132} y={14} color={STATUS_COLORS.blocked} label="Blocked" />
-          <LegendItem x={220} y={14} color={STATUS_COLORS.todo} label="To Do" />
-          <LegendItem x={308} y={14} color={STATUS_COLORS.selected} label="Selected Task" />
+          <LegendItem
+            x={legendItemBaseX + 0 * legendItemGap}
+            y={14}
+            color={STATUS_COLORS['in-progress']}
+            label="In Progress"
+            fontSize={legendFontSize}
+            boxSize={legendBoxSize}
+          />
+          <LegendItem
+            x={legendItemBaseX + 1 * legendItemGap}
+            y={14}
+            color={STATUS_COLORS.blocked}
+            label="Blocked"
+            fontSize={legendFontSize}
+            boxSize={legendBoxSize}
+          />
+          <LegendItem
+            x={legendItemBaseX + 2 * legendItemGap}
+            y={14}
+            color={STATUS_COLORS.todo}
+            label="To Do"
+            fontSize={legendFontSize}
+            boxSize={legendBoxSize}
+          />
+          <LegendItem
+            x={legendItemBaseX + 3 * legendItemGap}
+            y={14}
+            color={STATUS_COLORS.selected}
+            label="Selected Task"
+            fontSize={legendFontSize}
+            boxSize={legendBoxSize}
+          />
         </g>
       </g>
     </svg>

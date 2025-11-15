@@ -25,11 +25,23 @@ import React from 'react';
  * @example
  * <LegendItem x={10} y={20} color="#3b82f6" label="In Progress" />
  */
-const LegendItem = ({ x, y, color, label }) => {
+const LegendItem = ({ x, y, color, label, fontSize = 12, boxSize = 12 }) => {
   return (
     <g transform={`translate(${x}, ${y})`}>
-      <rect x={0} y={0} width={12} height={12} rx={2} fill={color} />
-      <text x={18} y={11} fontSize={12} fill="#374151">
+      <rect
+        x={0}
+        y={0}
+        width={boxSize}
+        height={boxSize}
+        rx={boxSize / 6}
+        fill={color}
+      />
+      <text
+        x={boxSize + 6}
+        y={fontSize}           // baseline close to original 11 with fontSize=12
+        fontSize={fontSize}
+        fill="#374151"
+      >
         {label}
       </text>
     </g>
