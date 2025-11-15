@@ -19,6 +19,8 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { useClickUp } from '../../../shared/hooks/useClickUp';
+import {User, Target, Calendar, Clapperboard, MessagesSquare, ListFilter, LayoutList} from "lucide-react"
+
 
 /**
  * Props for TaskTable component
@@ -634,16 +636,43 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                       <th style={{ padding: "10px 12px", width: COL_WIDTHS.nameCalc }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                           <div style={{ width: 20 }} />
-                          <div>Name</div>
+                          <div>
+                            {/* LayoutList (Name) Icon */}
+                            <LayoutList className="mr-1 inline-block h-5 w-5 align-middle"/>
+                            Name
+                          </div>
                         </div>
                       </th>
-
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.assignee }}>Assignee</th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.dueDate }}>Due</th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.timeRemaining }}>Time Remaining</th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.priority }}>Priority</th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.status }}>Status</th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.comments, paddingLeft: "0px"}}>Comments</th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.assignee }}>
+                        {/* User Icon */}
+                        <User className="mr-1 inline-block h-5 w-5 align-middle"/>
+                        Assignee
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.dueDate }}>
+                         {/* Calendar (Due) Icon */}
+                         <Calendar className="mr-1 inline-block h-5 w-5 align-middle" />
+                         Due
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.timeRemaining }}>
+                        {/* Clapperboard (Time Remaining) Icon */}
+                        <Clapperboard className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Time Remaining
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.priority }}>
+                        {/* List Filter (Priority) List Filter Icon */}
+                        <ListFilter className="mr-1 inline-block h-5 w-5 align-middle"/>
+                        Priority
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.status }}>
+                        {/* Target(Status) Icon */}
+                        <Target className="mr-1 inline-block h-5 w-5 align-middle"/>
+                        Status
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.comments, paddingLeft: "0px"}}>
+                        {/* Comments Icon */}
+                        <MessagesSquare className="mr-1 inline-block h-5 w-5 align-middle"/>
+                        Comments
+                      </th>
                     </tr>
                   </thead>
                   <tbody>{tasks.map((t) => <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>)}</tbody>
