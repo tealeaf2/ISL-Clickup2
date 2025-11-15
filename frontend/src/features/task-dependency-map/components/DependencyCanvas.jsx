@@ -268,7 +268,7 @@ const DependencyCanvas = ({
           <rect
             x={0}
             y={0}
-            width={320}
+            width={408}
             height={40}
             rx={10}
             fill="#ffffff"
@@ -277,6 +277,7 @@ const DependencyCanvas = ({
           <LegendItem x={12} y={14} color={STATUS_COLORS['in-progress']} label="In Progress" />
           <LegendItem x={132} y={14} color={STATUS_COLORS.blocked} label="Blocked" />
           <LegendItem x={220} y={14} color={STATUS_COLORS.todo} label="To Do" />
+          <LegendItem x={308} y={14} color={STATUS_COLORS.selected} label="Selected Task" />
         </g>
       </g>
     </svg>
