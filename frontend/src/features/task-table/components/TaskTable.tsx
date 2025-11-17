@@ -229,6 +229,26 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
+  // Paganation by status.
+  const [pageByStatus, setPageByStatus] = useState<Record<string, number>>({});
+  const ITEMS_PER_PAGE = 5;
+
+  // Whenever the user selects a different team, 
+  // reset the status-level pagination back to page 1 for every status.
+   useEffect(() => {
+  setPageByStatus({});
+}, [selectedTeam]);
+
+
+  // Pagination for subtasks by parent task id
+  const [subtaskPageByTask, setSubtaskPageByTask] = useState<Record<string, number>>({});
+  const SUBTASKS_PER_PAGE = 5;
+
+
+
+
+ 
+
   // Fetch teams on component mount
   useEffect(() => {
     if (apiToken) {
@@ -373,6 +393,35 @@ export const TaskTable: React.FC<TaskTableProps> = ({
 
     const statusColor = STATUS_COLORS[task.status] ?? STATUS_COLORS.Unknown;
 
+    // --- subtask pagination setup for this parent task ---
+    let visibleSubtasks: Task[] = [];
+    let subStartIndex = 0;
+    let subEndIndex = 0;
+    let subTotalPages = 0;
+    let subCurrentPage = 1;
+
+    if (hasSub && isOpen) {
+      const allSubs = task.subtasks!;
+      const totalSubs = allSubs.length;
+
+      subTotalPages = Math.max(1, Math.ceil(totalSubs / SUBTASKS_PER_PAGE));
+
+      const rawPage = subtaskPageByTask[task.id] ?? 1;
+      subCurrentPage = Math.min(rawPage, subTotalPages);
+
+      subStartIndex = (subCurrentPage - 1) * SUBTASKS_PER_PAGE;
+      subEndIndex = subStartIndex + SUBTASKS_PER_PAGE;
+
+      visibleSubtasks = allSubs.slice(subStartIndex, subEndIndex);
+    }
+
+    const handleSubtaskPageChange = (newPage: number) => {
+      setSubtaskPageByTask((prev) => ({
+        ...prev,
+        [task.id]: newPage,
+      }));
+    };
+
     return (
       <React.Fragment key={task.id}>
         <tr
@@ -492,9 +541,96 @@ export const TaskTable: React.FC<TaskTableProps> = ({
           </td>
         </tr>
 
-        {hasSub && isOpen ? (
-          task.subtasks!.map((st) => <React.Fragment key={st.id}>{renderTaskRows(st, depth + 1)}</React.Fragment>)
-        ) : null}
+         {/* ---  render paginated subtasks + their pager --- */}
+         {hasSub && isOpen && (
+          <>
+            {/* visible subtasks */}
+            {visibleSubtasks.map((st) => (
+              <React.Fragment key={st.id}>
+                {renderTaskRows(st, depth + 1)}
+              </React.Fragment>
+            ))}
+
+            {/* subtask pagination row */}
+            {subTotalPages > 1 && (
+              <tr>
+                <td
+                  colSpan={7}
+                  style={{
+                    padding: "4px 16px 8px 16px",
+                    fontSize: 11,
+                    color: "#6b7280",
+                    background: "#f9fafb",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div>
+                      Subtasks:{" "}
+                      <strong>
+                        {subStartIndex + 1}–
+                        {Math.min(subEndIndex, task.subtasks!.length)}
+                      </strong>{" "}
+                      of <strong>{task.subtasks!.length}</strong>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        onClick={() =>
+                          handleSubtaskPageChange(subCurrentPage - 1)
+                        }
+                        disabled={subCurrentPage === 1}
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          border: "1px solid #e5e7eb",
+                          background:
+                            subCurrentPage === 1 ? "#f3f4f6" : "#ffffff",
+                          color:
+                            subCurrentPage === 1 ? "#9ca3af" : "#111827",
+                          cursor:
+                            subCurrentPage === 1 ? "default" : "pointer",
+                        }}
+                      >
+                        Prev
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleSubtaskPageChange(subCurrentPage + 1)
+                        }
+                        disabled={subCurrentPage === subTotalPages}
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          border: "1px solid #e5e7eb",
+                          background:
+                            subCurrentPage === subTotalPages
+                              ? "#f3f4f6"
+                              : "#ffffff",
+                          color:
+                            subCurrentPage === subTotalPages
+                              ? "#9ca3af"
+                              : "#111827",
+                          cursor:
+                            subCurrentPage === subTotalPages
+                              ? "default"
+                              : "pointer",
+                        }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </>
+        )}
+
       </React.Fragment>
     );
   };
@@ -609,6 +745,23 @@ export const TaskTable: React.FC<TaskTableProps> = ({
         <div style={{ display: "grid", gap: 12 }}>
           {grouped.map(([status, tasks]) => {
             const total = countWithSubtasks(tasks);
+
+            // compute pages
+            const totalPages = Math.max(1, Math.ceil(tasks.length / ITEMS_PER_PAGE));
+            const rawPage = pageByStatus[status] ?? 1;
+            const currentPage = Math.min(rawPage, totalPages); // clamp
+
+            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const visibleTasks = tasks.slice(startIndex, endIndex);
+
+            const handlePageChange = (newPage: number) => {
+              setPageByStatus((prev) => ({
+                ...prev,
+                [status]: newPage,
+              }));
+            };
+
             return (
               <section
                 key={status}
@@ -628,7 +781,17 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                       {tasks.length} top-level • {total} total
                     </div>
                   </div>
+
+
+                  {/* Optional: show page indicator in the header */}
+                  {totalPages > 1 && (
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>
+                      Page {currentPage} of {totalPages}
+                    </div>
+                  )}
                 </div>
+
+                
 
                 <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                   <thead>
@@ -675,8 +838,66 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                       </th>
                     </tr>
                   </thead>
-                  <tbody>{tasks.map((t) => <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>)}</tbody>
+                  <tbody>{visibleTasks.map((t) => <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>)}</tbody>
                 </table>
+                
+                {/* Pagination controls for this status */}
+                {totalPages > 1 && (
+                  <div /* pagination bar */
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "8px 16px 12px 16px",
+                      borderTop: "1px solid #f3f4f6",
+                      fontSize: 12,
+                      color: "#6b7280",
+                    }}
+                  >
+                    <div>
+                      Showing{" "}
+                      <strong>
+                        {startIndex + 1}–
+                        {Math.min(endIndex, tasks.length)}
+                      </strong>{" "}
+                      of <strong>{tasks.length}</strong> tasks
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          border: "1px solid #e5e7eb",
+                          background: currentPage === 1 ? "#f9fafb" : "#ffffff",
+                          color: currentPage === 1 ? "#9ca3af" : "#111827",
+                          cursor: currentPage === 1 ? "default" : "pointer",
+                          fontSize: 12,
+                        }}
+                      >
+                        Prev
+                      </button>
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          border: "1px solid #e5e7eb",
+                          background:
+                            currentPage === totalPages ? "#f9fafb" : "#ffffff",
+                          color:
+                            currentPage === totalPages ? "#9ca3af" : "#111827",
+                          cursor: currentPage === totalPages ? "default" : "pointer",
+                          fontSize: 12,
+                        }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </section>
             );
           })}
