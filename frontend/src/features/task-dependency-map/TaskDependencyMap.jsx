@@ -1,12 +1,10 @@
 /**
  * TaskDependencyMap Component
- * 
- * Presentational component that renders the task dependency graph visualization.
+ * * Presentational component that renders the task dependency graph visualization.
  * This is a stateless component that follows the "data down, events up" pattern:
  * - Receives all data and state as props (data down)
  * - Emits events through callback props (events up)
- * 
- * The component displays:
+ * * The component displays:
  * - Control panel with zoom/pan controls and options
  * - Interactive canvas showing tasks in a Gantt-style timeline
  * - Modals for viewing/editing tasks and adding new tasks
@@ -21,34 +19,9 @@ import TaskDetails from './components/TaskDetails';
 /**
  * Stateless Task Dependency Map component - receives all data and handlers as props
  * Follows "data down, event up" pattern
- * 
- * @param {Object} props - Component props
+ * * @param {Object} props - Component props
  * @param {Array} props.tasks - Array of tasks to display (with computed rectangles)
- * @param {Array} props.dependencies - Array of dependency relationships between tasks
- * @param {string|null} props.selectedId - ID of currently selected task
- * @param {Object|null} props.selectedTask - The selected task object
- * @param {boolean} props.editOpen - Whether the detail modal is open
- * @param {Object} props.modalPosition - Screen position for modal placement
- * @param {number} props.contentWidth - Width of the scrollable content area
- * @param {number} props.contentHeight - Height of the scrollable content area
- * @param {Object} props.pan - Pan offset {x, y} in pixels
- * @param {number} props.scale - Current zoom level (1.0 = 100%)
- * @param {boolean} props.isPanning - Whether user is currently panning
- * @param {Object} props.containerRef - React ref to the container element
- * @param {Array} props.blockers - Array of tasks blocking the selected task
- * @param {Function} props.onZoomIn - Callback to zoom in
- * @param {Function} props.onZoomOut - Callback to zoom out
- * @param {Function} props.onFitToView - Callback to fit content horizontally to viewport
- * @param {Function} props.onTaskClick - Callback when a task is clicked
- * @param {Function} props.onTaskPointerDown - Callback when pointer down on task
- * @param {Function} props.onTaskPointerMove - Callback when pointer moves on task
- * @param {Function} props.onTaskPointerUp - Callback when pointer up on task
- * @param {Function} props.onPointerDown - Callback when pointer down on canvas
- * @param {Function} props.onPointerMove - Callback when pointer moves on canvas
- * @param {Function} props.onPointerUp - Callback when pointer up on canvas
- * @param {Function} props.onPointerCancel - Callback when pointer is cancelled
- * @param {Function} props.onClose - Callback to close modals
- * @param {Function} props.getBlockers - Function to get blockers for a task
+ *... (props)
  */
 const TaskDependencyMap = ({
   // Data props (data down)
@@ -69,6 +42,9 @@ const TaskDependencyMap = ({
   day0Offset,
   
   // Event handler props (events up)
+  groupBy,
+  setGroupBy,
+  groupLabels, // This is the list of calculated labels (e.g., ['High', 'Low'] or ['Alice', 'Bob'])
   onZoomIn,
   onZoomOut,
   onFitToView,
@@ -87,6 +63,8 @@ const TaskDependencyMap = ({
         onZoomIn={onZoomIn}
         onZoomOut={onZoomOut}
         onFitToView={onFitToView}
+        groupBy={groupBy}
+        setGroupBy={setGroupBy}
       />
 
       {/* Main canvas container - handles pan/zoom interactions */}
@@ -118,7 +96,8 @@ const TaskDependencyMap = ({
           scale={scale}
           onTaskClick={onTaskClick}
           getBlockers={getBlockers}
-          owners={Array.from(new Set(tasks.map(task => task.owner))).sort()}
+          owners={groupLabels} // Pass the calculated labels (e.g., ['High', 'Low'])
+          groupBy={groupBy} // <-- *** ADD THIS LINE ***
           startDate={gridStartDate || new Date()}
           day0Offset={day0Offset || 0}
         />
@@ -140,18 +119,8 @@ const TaskDependencyMap = ({
             position={modalPosition}
             containerRect={containerRef?.current?.getBoundingClientRect?.()}
             // TODO: Pass update handlers when implemented
-            // onEdit={(task) => {
-            //   // Handle edit action
-            //   if (onTaskUpdate) {
-            //     // Open edit modal or enable inline editing
-            //   }
-            // }}
-            // onStatusUpdate={(taskId, newStatus) => {
-            //   // Handle status update
-            //   if (onTaskStatusUpdate) {
-            //     onTaskStatusUpdate(taskId, newStatus);
-            //   }
-            // }}
+            // onEdit={(task) => { ... }}
+            // onStatusUpdate={(taskId, newStatus) => { ... }}
           />
         )}
 

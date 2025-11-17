@@ -1,18 +1,15 @@
 /**
  * DependencyCanvas Component
- * 
- * SVG canvas that renders the Gantt-style dependency graph visualization.
+ * * SVG canvas that renders the Gantt-style dependency graph visualization.
  * Displays:
  * - Calendar timeline grid with day markers
- * - Owner lanes (horizontal rows organized by task owner)
+ * - Group lanes (horizontal rows organized by group)
  * - Task bars positioned by date and lane
  * - Dependency arrows connecting parent to child tasks
  * - Status legend
- * - Owner labels on the left side
- * 
- * The canvas supports pan and zoom transformations applied via SVG transform.
- * 
- * @param {Object} props - Component props
+ * - Group labels on the left side
+ * * The canvas supports pan and zoom transformations applied via SVG transform.
+ * * @param {Object} props - Component props
  * @param {Array} props.tasks - Array of tasks to render
  * @param {Array} props.dependencies - Array of dependency relationships
  * @param {string|null} props.selectedId - ID of currently selected task
@@ -24,8 +21,10 @@
  * @param {number} props.scale - Zoom scale factor (1.0 = 100%)
  * @param {Function} props.onTaskClick - Callback when task is clicked
  * @param {Function} props.getBlockers - Function to get blockers for a task
- * @param {Array} props.owners - Array of unique owner names
+ * @param {Array} props.owners - Array of unique group labels (e.g., ['High', 'Low'] or ['Alice', 'Bob'])
+ * @param {string} props.groupBy - The current grouping key ('assignee', 'status', 'priority')
  * @param {Date} props.startDate - Starting date for the timeline
+ * @param {number} props.day0Offset - The offset (in days) from startDate to today
  */
 import React from 'react';
 import TaskBar from './TaskBar';
@@ -45,11 +44,32 @@ const DependencyCanvas = ({
   scale,
   onTaskClick,
   getBlockers,
-  owners = [],
+  owners = [], // This prop is now unused, but safe to keep. We derive labels from tasks.
+  groupBy, // <-- Receives the groupBy prop
   startDate = new Date(),
   day0Offset = 0
 }) => {
   const { DAY_WIDTH, LANE_HEIGHT, PADDING } = LAYOUT_CONSTANTS;
+
+  /**
+   * Helper to get the correct grouping value from a task based on state.
+   * This logic is duplicated from the container to be used here.
+   */
+  const getGroupValue = (task) => {
+    if (!task) return '';
+    switch (groupBy) {
+      case 'status':
+        return task.status || 'unknown';
+      case 'priority':
+        // Capitalize first letter for better label display
+        const priority = task.priority || 'none';
+        return priority.charAt(0).toUpperCase() + priority.slice(1);
+      case 'assignee':
+      default:
+        return task.owner || 'Unassigned';
+    }
+  };
+
 
   /**
    * Generate vertical grid lines for calendar days
@@ -90,42 +110,46 @@ const DependencyCanvas = ({
   }
   
   // Debug: Verify grid alignment and log grid line positions
-  console.log(`Grid: baseDate=${baseDate.toISOString().split('T')[0]}, totalDays=${totalDays}, day0Offset=${day0Offset}, DAY_WIDTH=${dayWidth}, PADDING=${PADDING}`);
+  // console.log(`Grid: baseDate=${baseDate.toISOString().split('T')[0]}, totalDays=${totalDays}, day0Offset=${day0Offset}, DAY_WIDTH=${dayWidth}, PADDING=${PADDING}`);
   if (day0Offset < totalDays && day0Offset >= 0) {
     const todayGridLine = gridLines[day0Offset];
     if (todayGridLine) {
-      console.log(`Grid alignment: Today at grid index ${day0Offset}, x=${todayGridLine.x}, date=${todayGridLine.date.toISOString().split('T')[0]}`);
+      // console.log(`Grid alignment: Today at grid index ${day0Offset}, x=${todayGridLine.x}, date=${todayGridLine.date.toISOString().split('T')[0]}`);
     }
   }
 
   /**
    * Generate horizontal lane separator lines
-   * Creates lines between lanes and identifies owner boundaries
+   * Creates lines between lanes and identifies group boundaries
    */
   const laneLines = [];
   const taskLanes = tasks.map(task => isNaN(task.lane) ? 0 : task.lane);
   const actualMaxLane = taskLanes.length > 0 ? Math.max(...taskLanes) : 0;
   
-  console.log('Tasks for lane generation:', tasks.map(task => ({ id: task.id, name: task.name, lane: task.lane, owner: task.owner })));
-  console.log('Actual max lane:', actualMaxLane);
+  // console.log('Tasks for lane generation:', tasks.map(task => ({ id: task.id, name: task.name, lane: task.lane, owner: task.owner })));
+  // console.log('Actual max lane:', actualMaxLane);
   
   for (let l = 0; l <= actualMaxLane; l++) {
-    // Find a task in this lane to get owner info
+    // Find a task in this lane to get group info
     const taskInLane = tasks.find(task => task.lane === l);
-    // Inherit previous non-empty owner for spacer lanes to avoid splitting sections
-    const previousOwner = laneLines.length > 0 ? laneLines[laneLines.length - 1].owner : '';
-    const owner = taskInLane ? taskInLane.owner : previousOwner;
     
-    console.log(`Creating lane ${l} with owner: ${owner}`);
+    // Inherit previous non-empty group for spacer lanes to avoid splitting sections
+    const previousGroup = laneLines.length > 0 ? laneLines[laneLines.length - 1].group : '';
+    
+    // *** THE FIX IS HERE ***
+    // Instead of taskInLane.owner, we use getGroupValue(taskInLane)
+    const group = getGroupValue(taskInLane) || previousGroup;
+    
+    // console.log(`Creating lane ${l} with group: ${group}`);
     
     laneLines.push({
       y: PADDING + l * LANE_HEIGHT,
       lane: l,
-      owner: owner
+      group: group // Store the 'group' (e.g., 'In Progress') not the 'owner'
     });
   }
   
-  console.log('Generated lane lines:', laneLines);
+  // console.log('Generated lane lines:', laneLines);
 
   // Create tasks lookup for edge path calculation
   const tasksById = Object.fromEntries(tasks.map(task => [task.id, task]));
@@ -153,7 +177,7 @@ const DependencyCanvas = ({
         
 
         {/* Vertical day grid + labels */}
-        {/* Grid starts after the owner label area (150px) */}
+        {/* Grid starts after the owner label area (250px) */}
         {gridLines.map(({ x, day, date }) => {
           // day 0 (today) is at day0Offset in the grid lines array
           const isDay0 = day === day0Offset;
@@ -187,29 +211,31 @@ const DependencyCanvas = ({
         })}
 
         {/* Horizontal lane separators */}
-        {laneLines.map(({ y, lane, owner }, index) => {
-          // Check if this is the first lane of a new owner
-          const isOwnerBoundary = index === 0 || laneLines[index - 1].owner !== owner;
+        {laneLines.map(({ y, lane, group }, index) => {
+          // Check if this is the first lane of a new group
+          // *** THE FIX IS HERE ***
+          const isGroupBoundary = index === 0 || laneLines[index - 1].group !== group;
           
           return (
             <line
-              key={`h-${lane}-${owner}`}
+              key={`h-${lane}-${group}`}
               x1={0}
               y1={y}
               x2={contentWidth}
               y2={y}
-              stroke={isOwnerBoundary ? "#9ca3af" : "#e5e7eb"}
-              strokeWidth={isOwnerBoundary ? 2 : 1}
+              stroke={isGroupBoundary ? "#9ca3af" : "#e5e7eb"}
+              strokeWidth={isGroupBoundary ? 2 : 1}
             />
           );
         })}
 
-        {/* Owner section labels - scale font size with zoom to maintain readability */}
-        {laneLines.map(({ y, lane, owner }, index) => {
-          // Only show owner label for the first lane of each owner section
-          const isFirstLaneOfOwner = index === 0 || laneLines[index - 1].owner !== owner;
+        {/* Group section labels - scale font size with zoom to maintain readability */}
+        {laneLines.map(({ y, lane, group }, index) => {
+          // Only show group label for the first lane of each group section
+          // *** THE FIX IS HERE ***
+          const isFirstLaneOfGroup = index === 0 || laneLines[index - 1].group !== group;
           
-          if (!isFirstLaneOfOwner || !owner) return null;
+          if (!isFirstLaneOfGroup || !group) return null;
           
           const taskInLane = tasks.find(task => task.lane === lane);
           const isParent = taskInLane && !taskInLane.parentId;
@@ -227,7 +253,7 @@ const DependencyCanvas = ({
           
           return (
             <text
-              key={`lane-${lane}-${owner}`}
+              key={`lane-${lane}-${group}`}
               x={ownerLabelArea - 20}
               y={y + LANE_HEIGHT / 2 + 4}
               fontSize={fontSize}
@@ -235,7 +261,7 @@ const DependencyCanvas = ({
               fontWeight={isParent ? "700" : "600"}
               textAnchor="end"
             >
-              {owner}
+              {group} {/* <-- *** THE FINAL FIX *** */}
             </text>
           );
         })}
@@ -284,5 +310,3 @@ const DependencyCanvas = ({
 };
 
 export default DependencyCanvas;
-
-

@@ -13,15 +13,13 @@ import type { Task, TaskOptions, TaskPriority } from '../../../shared/types';
 
 /**
  * TaskDependencyMapContainer Component
- * 
- * Stateful container component that manages all state and business logic for the dependency graph.
+ * * Stateful container component that manages all state and business logic for the dependency graph.
  * This component follows the "data down, events up" pattern:
  * - Manages all state (tasks, selection, pan/zoom, modals, etc.)
  * - Processes business logic (conversion, relationships, lane assignment)
  * - Passes data down to the presentational TaskDependencyMap component
  * - Receives events up from child components and updates state accordingly
- * 
- * Key Responsibilities:
+ * * Key Responsibilities:
  * - Converts ClickUp API tasks to internal graph format
  * - Manages task state and parent-child relationships
  * - Handles CRUD operations (Create, Read, Update, Delete)
@@ -37,16 +35,14 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
 
   /**
    * Converts ClickUp API task format to internal graph task format
-   * 
-   * This function transforms tasks from ClickUp's API structure to the format
+   * * This function transforms tasks from ClickUp's API structure to the format
    * used by the dependency graph visualization, including:
    * - Status mapping (ClickUp status -> internal status)
    * - Priority mapping (ClickUp priority -> internal priority)
    * - Date calculations (due_date -> start day relative to today)
    * - Owner extraction (from assignees array)
    * - Parent relationship mapping
-   * 
-   * @param clickUpTasks - Array of tasks from ClickUp API
+   * * @param clickUpTasks - Array of tasks from ClickUp API
    * @returns Array of tasks in internal graph format
    */
   // Get a consistent "today" reference for all date calculations
@@ -261,6 +257,9 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     debounceMs: 300                         // Debounce delay for status propagation
   });
 
+  /** Grouping state - determines how lanes are organized */
+  const [groupBy, setGroupBy] = useState<'assignee' | 'status' | 'priority'>('assignee');
+
   /** Task data management hook - provides tasks, setter, lookup map, and dependencies */
   const { tasks, setTasks, tasksById, dependencies } = useTaskData(convertedTasks);
 
@@ -279,31 +278,44 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
 
   /**
    * Assigns lanes (vertical rows) to tasks based on owner and hierarchy
-   * 
-   * Lane assignment strategy:
-   * 1. Group tasks by owner
-   * 2. Within each owner, separate parent tasks (no parent) from child tasks
-   * 3. Assign parent tasks first, then their children
-   * 4. Add spacing between parent-child groups and between different owners
-   * 
-   * This creates a visual hierarchy where:
-   * - Tasks are organized by owner (vertically)
-   * - Parent tasks appear above their children
-   * - Clear visual separation between groups
+   * * Lane assignment strategy (now dynamic based on groupBy state):
+   * 1. Determine the grouping key (assignee, status, or priority)
+   * 2. Group tasks by that key
+   * 3. Within each group, separate parent tasks from child tasks
+   * 4. Assign parent tasks first, then their children
+   * 5. Add spacing between parent-child groups and between different groups
    */
   const laneAssignment: Record<string, number> = {};
   let currentLane = 0;
 
-  // Get unique owners and sort them alphabetically for consistent ordering
-  const uniqueOwners = Array.from(new Set((tasks || []).map(task => task.owner))).sort();
+  // Helper to get the correct grouping value from a task based on state
+  const getGroupValue = (task: Task): string => {
+    switch (groupBy) {
+      case 'status':
+        return task.status || 'unknown';
+      case 'priority':
+        // Capitalize first letter for better label display
+        const priority = task.priority || 'none';
+        return priority.charAt(0).toUpperCase() + priority.slice(1);
+      case 'assignee':
+      default:
+        return task.owner || 'Unassigned';
+    }
+  };
 
-  // Assign lanes by owner with proper hierarchy (parents before children)
-  uniqueOwners.forEach(owner => {
-    const ownerTasks = (tasks || []).filter(task => task.owner === owner);
+  // Get unique group values and sort them alphabetically for consistent ordering
+  const uniqueGroupValues = Array.from(new Set((tasks || []).map(getGroupValue))).sort();
 
+  // Assign lanes by group with proper hierarchy (parents before children)
+  uniqueGroupValues.forEach(groupValue => {
+    // Get all tasks matching the current group value
+    const groupTasks = (tasks || []).filter(task => getGroupValue(task) === groupValue);
+
+    // --- The rest of the logic is the same, just uses `groupTasks` ---
+    
     // Separate parent tasks (no parent) from child tasks (have parent)
-    const parentTasks = ownerTasks.filter(task => !task.parentId);
-    const childTasks = ownerTasks.filter(task => task.parentId);
+    const parentTasks = groupTasks.filter(task => !task.parentId);
+    const childTasks = groupTasks.filter(task => task.parentId);
 
     // Assign lanes to parent tasks first
     parentTasks.forEach(task => {
@@ -332,7 +344,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     });
 
     // Add spacing between different owners
-    if (owner !== uniqueOwners[uniqueOwners.length - 1]) {
+    if (groupValue !== uniqueGroupValues[uniqueGroupValues.length - 1]) {
       currentLane++;
     }
   });
@@ -450,8 +462,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
 
   /**
    * Handles task click - selects task, positions modal, and opens edit mode
-   * 
-   * @param e - Click event
+   * * @param e - Click event
    * @param task - The task being clicked
    * @param clickOffset - Optional offset from click position to task rectangle (for modal positioning)
    */
@@ -472,15 +483,13 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
 
   // /**
   //  * TODO: Handle task update from graph interactions
-  //  * 
-  //  * This function will be called when a task is updated on the graph (e.g., moved,
+  //  * //  * This function will be called when a task is updated on the graph (e.g., moved,
   //  * resized, status changed). It should:
   //  * 1. Convert the graph task changes to ClickUp API format
   //  * 2. Call the ClickUp API to update the task
   //  * 3. Update local state with the response
   //  * 4. Handle errors and show user feedback
-  //  * 
-  //  * @param {string} taskId - The ID of the task being updated
+  //  * //  * @param {string} taskId - The ID of the task being updated
   //  * @param {Object} changes - Object containing the changes made
   //  * @param {number} [changes.startDay] - New start day (relative to today)
   //  * @param {number} [changes.duration] - New duration in days
@@ -513,10 +522,8 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
 
   // /**
   //  * TODO: Handle task status update
-  //  * 
-  //  * Convenience handler specifically for status updates from the UI.
-  //  * 
-  //  * @param {string} taskId - The ID of the task to update
+  //  * //  * Convenience handler specifically for status updates from the UI.
+  //  * //  * @param {string} taskId - The ID of the task to update
   //  * @param {string} newStatus - The new status value
   //  * @returns {Promise<void>} Promise that resolves when update is complete
   //  */
@@ -536,11 +543,9 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
 
   // /**
   //  * TODO: Handle task date update (when task is moved or resized on graph)
-  //  * 
-  //  * This will be called when tasks are repositioned or resized on the graph.
+  //  * //  * This will be called when tasks are repositioned or resized on the graph.
   //  * Converts graph coordinates/days to ClickUp date format and updates via API.
-  //  * 
-  //  * @param {string} taskId - The ID of the task to update
+  //  * //  * @param {string} taskId - The ID of the task to update
   //  * @param {number} newStartDay - New start day (relative to today, can be negative)
   //  * @param {number} newDuration - New duration in days
   //  * @returns {Promise<void>} Promise that resolves when update is complete
@@ -568,11 +573,9 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
 
   // /**
   //  * TODO: Handle batch task updates
-  //  * 
-  //  * Updates multiple tasks at once (e.g., when multiple tasks are moved/resized).
+  //  * //  * Updates multiple tasks at once (e.g., when multiple tasks are moved/resized).
   //  * More efficient than individual updates.
-  //  * 
-  //  * @param {Array<{taskId: string, changes: Object}>} updates - Array of task updates
+  //  * //  * @param {Array<{taskId: string, changes: Object}>} updates - Array of task updates
   //  * @returns {Promise<void>} Promise that resolves when all updates are complete
   //  */
   // // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -610,6 +613,9 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     pan,
     scale,
     isPanning,
+    groupBy,
+    setGroupBy,
+    groupLabels: uniqueGroupValues, // Pass the calculated labels
     containerRef,
     blockers: selectedTask ? getBlockers(selectedTask) : [],
     gridStartDate,  // The date when the grid starts (may be before today for overdue tasks)

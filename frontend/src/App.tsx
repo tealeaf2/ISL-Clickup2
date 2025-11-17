@@ -5,8 +5,7 @@
  * 
  * The app has two main views:
  * - Task Table: Dashboard for browsing and managing ClickUp tasks
- * - Dependency Graph: Interactive visualization of task dependencies
- * 
+ * - Dependency Graph: Interactive visualization of task dependencies * 
  * This component maintains:
  * - Current page state for navigation
  * - Task data fetched from ClickUp API (passed from TaskTable to DependencyGraph)
