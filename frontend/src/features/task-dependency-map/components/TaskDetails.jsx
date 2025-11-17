@@ -248,44 +248,16 @@ const TaskDetails = ({
         )}
       </div>
 
-      {/* TODO: Add update functionality UI */}
-      {/* These buttons will be enabled once update functionality is implemented.
-        They should call update handlers passed as props to update the task in ClickUp.
-      */}
       <div className="pt-2 border-t border-gray-200">
-        <div className="text-xs text-gray-400 mb-2 italic">
-          Update functionality coming soon
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          {/* TODO: Add edit button - opens inline editing or edit modal */}
-          <button 
-            className="px-3 py-1 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 text-xs disabled:opacity-50 disabled:cursor-not-allowed" 
-            disabled
-            onClick={() => {
-              // TODO: Implement edit handler
-              // Should open an edit form/modal or enable inline editing
-              // onEdit?.(task);
-            }}
-            title="Edit functionality not yet implemented"
+        <div className="flex items-center justify-between">
+          <a
+            href={`https://app.clickup.com/t/${task.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 hover:text-blue-700 underline"
           >
-            Edit
-          </button>
-          
-          {/* TODO: Add quick status update dropdown */}
-          <select
-            className="px-2 py-1 rounded-lg border border-gray-300 shadow-sm text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled
-            value={task.status}
-            onChange={(e) => {
-              // TODO: Implement status update handler
-              // onStatusUpdate?.(task.id, e.target.value);
-            }}
-            title="Status update not yet implemented"
-          >
-            <option value={task.status}>{task.status}</option>
-            {/* TODO: Populate with available statuses from ClickUp workspace */}
-          </select>
-          
+            Open in ClickUp
+          </a>
           <button 
             className="px-3 py-1 rounded-lg border shadow-sm hover:bg-gray-50 text-xs cursor-pointer" 
             onClick={onClose}
