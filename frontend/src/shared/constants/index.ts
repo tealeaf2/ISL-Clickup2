@@ -11,6 +11,7 @@ export const STATUS_COLORS = {
   'in-progress': '#3b82f6', // blue-500
   blocked: '#ef4444', // red-500
   todo: '#9ca3af', // gray-400
+  selected:'#fbbf24', // amber-400.
   default: '#6b7280', // gray-500
 } as const;
 
