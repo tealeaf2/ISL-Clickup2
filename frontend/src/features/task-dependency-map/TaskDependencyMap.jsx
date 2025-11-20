@@ -54,7 +54,10 @@ const TaskDependencyMap = ({
   onPointerUp,
   onPointerCancel,
   onClose,
-  getBlockers
+  getBlockers,
+  showBlastRadius,
+  setShowBlastRadius,
+  blastRadiusIds
 }) => {
   return (
     <div className="w-full h-[80vh] bg-slate-50 text-gray-800 flex flex-col">
@@ -65,6 +68,8 @@ const TaskDependencyMap = ({
         onFitToView={onFitToView}
         groupBy={groupBy}
         setGroupBy={setGroupBy}
+        showBlastRadius={showBlastRadius}
+        setShowBlastRadius={setShowBlastRadius}
       />
 
       {/* Main canvas container - handles pan/zoom interactions */}
@@ -96,10 +101,12 @@ const TaskDependencyMap = ({
           scale={scale}
           onTaskClick={onTaskClick}
           getBlockers={getBlockers}
-          owners={groupLabels} // Pass the calculated labels (e.g., ['High', 'Low'])
-          groupBy={groupBy} // <-- *** ADD THIS LINE ***
+          owners={groupLabels}
+          groupBy={groupBy}
           startDate={gridStartDate || new Date()}
           day0Offset={day0Offset || 0}
+          blastRadiusIds={blastRadiusIds}
+          showBlastRadius={showBlastRadius}
         />
 
         {/* Debug HUD - shows current pan and zoom values for development */}
