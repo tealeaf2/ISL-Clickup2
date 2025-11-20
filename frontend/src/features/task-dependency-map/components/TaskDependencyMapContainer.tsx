@@ -31,7 +31,7 @@ import type { Task, TaskOptions, TaskPriority } from '../../../shared/types';
 
 const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[] }) => {
   // Debug: Log received tasks
-  console.log('TaskDependencyMapContainer: Received clickUpTasks:', clickUpTasks?.length || 0);
+  // console.log('TaskDependencyMapContainer: Received clickUpTasks:', clickUpTasks?.length || 0);
 
   /**
    * Converts ClickUp API task format to internal graph task format
@@ -156,9 +156,9 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
       }
 
       // Debug: Log parsed dates for verification
-      if (clickUpTask.start_date || clickUpTask.due_date) {
-        console.log(`Date parsing for "${clickUpTask.name}": start_date raw=${clickUpTask.start_date} -> parsed=${startDate?.toISOString().split('T')[0] || 'null'}, due_date raw=${clickUpTask.due_date} -> parsed=${dueDate?.toISOString().split('T')[0] || 'null'}`);
-      }
+      // if (clickUpTask.start_date || clickUpTask.due_date) {
+      //   console.log(`Date parsing for "${clickUpTask.name}": start_date raw=${clickUpTask.start_date} -> parsed=${startDate?.toISOString().split('T')[0] || 'null'}, due_date raw=${clickUpTask.due_date} -> parsed=${dueDate?.toISOString().split('T')[0] || 'null'}`);
+      // }
 
       // Calculate start day relative to today using the actual start_date from API
       // If no start_date, use due_date as fallback. If neither exists, spread tasks.
@@ -225,8 +225,8 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
       }
 
       // Debug logging (after owner is assigned)
-      const daysDiff = startDate && dueDate ? Math.floor((dueDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) : 'N/A';
-      console.log(`Task "${clickUpTask.name}": start_date=${clickUpTask.start_date} (parsed: ${startDate?.toISOString().split('T')[0] || 'null'}), due_date=${clickUpTask.due_date} (parsed: ${dueDate?.toISOString().split('T')[0] || 'null'}), daysDiff=${daysDiff}, duration=${duration}, startDay=${startDay}, today=${todayRef.toISOString().split('T')[0]}`);
+      // const daysDiff = startDate && dueDate ? Math.floor((dueDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) : 'N/A';
+      // console.log(`Task "${clickUpTask.name}": start_date=${clickUpTask.start_date} (parsed: ${startDate?.toISOString().split('T')[0] || 'null'}), due_date=${clickUpTask.due_date} (parsed: ${dueDate?.toISOString().split('T')[0] || 'null'}), daysDiff=${daysDiff}, duration=${duration}, startDay=${startDay}, today=${todayRef.toISOString().split('T')[0]}`);
 
       return {
         id: clickUpTask.id,
@@ -259,6 +259,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
 
   /** Grouping state - determines how lanes are organized */
   const [groupBy, setGroupBy] = useState<'assignee' | 'status' | 'priority'>('assignee');
+  const [showBlastRadius, setShowBlastRadius] = useState<boolean>(false);
 
   /** Task data management hook - provides tasks, setter, lookup map, and dependencies */
   const { tasks, setTasks, tasksById, dependencies } = useTaskData(convertedTasks);
@@ -275,6 +276,41 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
 
   /** Task relationships hook - only used for read-only blocker information */
   const { getBlockers } = useTaskRelationships(tasks, setTasks);
+  const blastRadiusIds = useMemo(() => {
+    const radius = new Set<string>();
+
+    if (!selectedId || !showBlastRadius) return radius;
+
+    // Recursive function to traverse children
+    const traverseDownstream = (currentId: string) => {
+      radius.add(currentId);
+
+      const children = dependencies.filter(dep => dep.from === currentId);
+
+      children.forEach(childDep => {
+        if (!radius.has(childDep.to)) {
+          traverseDownstream(childDep.to);
+        }
+      });
+    };
+
+    // Recursive function to traverse parents
+    const traverseUpstream = (currentId: string) => {
+      radius.add(currentId);
+
+      const parents = dependencies.filter(dep => dep.to === currentId);
+
+      parents.forEach(parentDep => {
+        if (!radius.has(parentDep.from)) {
+          traverseUpstream(parentDep.from);
+        }
+      });
+    };
+
+    traverseDownstream(selectedId);
+    traverseUpstream(selectedId);
+    return radius;
+  }, [selectedId, showBlastRadius, dependencies]);
 
   /**
    * Assigns lanes (vertical rows) to tasks based on owner and hierarchy
@@ -312,7 +348,7 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     const groupTasks = (tasks || []).filter(task => getGroupValue(task) === groupValue);
 
     // --- The rest of the logic is the same, just uses `groupTasks` ---
-    
+
     // Separate parent tasks (no parent) from child tasks (have parent)
     const parentTasks = groupTasks.filter(task => !task.parentId);
     const childTasks = groupTasks.filter(task => task.parentId);
@@ -632,6 +668,9 @@ const TaskDependencyMapContainer = ({ clickUpTasks = [] }: { clickUpTasks?: any[
     onPointerCancel: onPointerUp,
     onClose: closeSelection,
     getBlockers,
+    showBlastRadius,
+    setShowBlastRadius,
+    blastRadiusIds,
     // TODO: Pass update handlers to TaskDependencyMap when implemented
     // onTaskUpdate: handleTaskUpdate,
     // onTaskStatusUpdate: handleTaskStatusUpdate,

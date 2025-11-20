@@ -112,7 +112,7 @@ export const useTaskRelationships = (tasks: Task[], setTasks: React.Dispatch<Rea
     const newStatus = calculateParentStatus(children);
     
     if (newStatus && newStatus !== parent.status) {
-      console.log(`Updating parent task "${parent.name}" status from "${parent.status}" to "${newStatus}" based on children`);
+      // console.log(`Updating parent task "${parent.name}" status from "${parent.status}" to "${newStatus}" based on children`);
       
       setTasks(prev => {
         const updatedTasks = prev.map(task => 
