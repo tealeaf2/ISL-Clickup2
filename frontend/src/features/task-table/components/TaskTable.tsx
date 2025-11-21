@@ -19,7 +19,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { useClickUp } from '../../../shared/hooks/useClickUp';
-import {User, Target, Calendar, Clapperboard, MessagesSquare, ListFilter, LayoutList} from "lucide-react"
+import { User, Target, Calendar, Clapperboard, MessagesSquare, ListFilter, LayoutList } from "lucide-react"
 
 
 /**
@@ -91,19 +91,19 @@ function formatDate(d?: string): string {
  */
 function calculateTimeRemaining(dueDate?: string): string {
   if (!dueDate) return "-";
-  
+
   try {
     const isNumeric = /^\d+$/.test(dueDate);
     const dueDt = isNumeric ? new Date(parseInt(dueDate)) : new Date(dueDate);
-    
+
     if (isNaN(dueDt.getTime())) return "-";
-    
+
     const now = new Date();
     const diffMs = dueDt.getTime() - now.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
     const remainingHours = diffHours % 24;
-    
+
     if (diffHours < 0) {
       const absDays = Math.abs(diffDays);
       const absHours = Math.abs(remainingHours);
@@ -205,7 +205,7 @@ function sortTasksByDueDateAndName(arr: Task[]): Task[] {
  * @param {TaskTableProps} props - Component props
  * @returns {JSX.Element} A table-based dashboard with task management interface
  */
-export const TaskTable: React.FC<TaskTableProps> = ({ 
+export const TaskTable: React.FC<TaskTableProps> = ({
   apiToken: propApiToken,
   onTasksUpdate
 }) => {
@@ -216,13 +216,13 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   );
   const apiToken = propApiToken || localApiToken;
 
-  const { 
-    teams, 
-    tasks: clickUpTasks, 
+  const {
+    teams,
+    tasks: clickUpTasks,
     taskComments,
-    loading, 
-    error, 
-    fetchTeams, 
+    loading,
+    error,
+    fetchTeams,
     fetchTasks
   } = useClickUp(apiToken);
 
@@ -235,9 +235,9 @@ export const TaskTable: React.FC<TaskTableProps> = ({
 
   // Whenever the user selects a different team, 
   // reset the status-level pagination back to page 1 for every status.
-   useEffect(() => {
-  setPageByStatus({});
-}, [selectedTeam]);
+  useEffect(() => {
+    setPageByStatus({});
+  }, [selectedTeam]);
 
 
   // Pagination for subtasks by parent task id
@@ -247,7 +247,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
 
 
 
- 
+
 
   // Fetch teams on component mount
   useEffect(() => {
@@ -281,10 +281,10 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   const convertedTasks: Task[] = useMemo(() => {
     const taskMap = new Map<string, Task>();
     const topLevelTasks: Task[] = [];
-    
+
     for (const task of clickUpTasks) {
       const normalizedStatus = toTitleCase(task.status.status);
-      
+
       // Get comments from the taskComments map if available, otherwise use description
       let comments = taskComments.get(task.id) || [];
       if (comments.length === 0 && task.description && task.description.trim()) {
@@ -294,7 +294,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
       }
 
       // Handle due_date as both string and number (matching API format)
-      const dueDateStr = task.due_date 
+      const dueDateStr = task.due_date
         ? (typeof task.due_date === 'number' ? String(task.due_date) : task.due_date)
         : undefined;
 
@@ -315,7 +315,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
     // Build parent-child relationships
     for (const task of clickUpTasks) {
       const convertedTask = taskMap.get(task.id)!;
-      
+
       if (task.parent) {
         const parentTask = taskMap.get(task.parent);
         if (parentTask) {
@@ -339,7 +339,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
       if (!map.has(status)) map.set(status, []);
       map.get(status)!.push(t);
     }
-    
+
     const preferredOrder = ["To Do", "In Progress", "Review", "Complete"];
 
     const sortedKeys = Array.from(map.keys()).sort((a, b) => {
@@ -480,9 +480,9 @@ export const TaskTable: React.FC<TaskTableProps> = ({
           </td>
 
           <td style={{ padding: "10px 12px", width: COL_WIDTHS.timeRemaining, verticalAlign: "middle" }}>
-            <div 
-              style={{ 
-                fontSize: 12, 
+            <div
+              style={{
+                fontSize: 12,
                 color: task.timeRemaining?.includes('overdue') ? "#dc2626" : task.timeRemaining === "Due now" ? "#ff7a00" : task.timeRemaining?.includes("h") && !task.timeRemaining.includes("d") ? "#dc2626" : "#6b7280",
                 fontWeight: task.timeRemaining?.includes('overdue') || task.timeRemaining === "Due now" ? 600 : 400
               }}
@@ -528,7 +528,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
             </div>
           </td>
 
-          <td style={{ padding: "10px 12px", width: COL_WIDTHS.comments, verticalAlign: "middle", paddingRight: "30px", paddingLeft: "0px"}}>
+          <td style={{ padding: "10px 12px", width: COL_WIDTHS.comments, verticalAlign: "middle", paddingRight: "30px", paddingLeft: "0px" }}>
             {task.comments && task.comments.length > 0 ? (
               <ul style={{ margin: 0, paddingLeft: 0, fontSize: 13, color: "#6b7280" }}>
                 {task.comments.map((comment, idx) => (
@@ -541,16 +541,9 @@ export const TaskTable: React.FC<TaskTableProps> = ({
           </td>
         </tr>
 
-         {/* ---  render paginated subtasks + their pager --- */}
-         {hasSub && isOpen && (
+        {/* ---  render paginated subtasks + their pager --- */}
+        {hasSub && isOpen && (
           <>
-            {/* visible subtasks */}
-            {visibleSubtasks.map((st) => (
-              <React.Fragment key={st.id}>
-                {renderTaskRows(st, depth + 1)}
-              </React.Fragment>
-            ))}
-
             {/* subtask pagination row */}
             {subTotalPages > 1 && (
               <tr>
@@ -628,6 +621,11 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                 </td>
               </tr>
             )}
+            {visibleSubtasks.map((st) => (
+              <React.Fragment key={st.id}>
+                {renderTaskRows(st, depth + 1)}
+              </React.Fragment>
+            ))}
           </>
         )}
 
@@ -652,7 +650,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
         <div style={{ maxWidth: "28rem", width: "100%", padding: "1.5rem", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.5rem" }}>
           <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#dc2626", marginBottom: "1rem" }}>Error Loading Data</h2>
           <p style={{ color: "#dc2626", marginBottom: "1rem" }}>{error}</p>
-          <button 
+          <button
             onClick={fetchTeams}
             style={{ width: "100%", padding: "0.5rem 1rem", background: "#dc2626", color: "#fff", borderRadius: "0.5rem", border: "none", cursor: "pointer" }}
           >
@@ -717,13 +715,13 @@ export const TaskTable: React.FC<TaskTableProps> = ({
       </div>
 
       {error && (
-        <div style={{ 
-          padding: 12, 
-          background: "#fef2f2", 
-          border: "1px solid #fecaca", 
-          borderRadius: 8, 
+        <div style={{
+          padding: 12,
+          background: "#fef2f2",
+          border: "1px solid #fecaca",
+          borderRadius: 8,
           color: "#dc2626",
-          marginBottom: 18 
+          marginBottom: 18
         }}>
           {error}
         </div>
@@ -783,86 +781,13 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   </div>
 
 
-                  {/* Optional: show page indicator in the header */}
-                  {totalPages > 1 && (
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>
-                      Page {currentPage} of {totalPages}
-                    </div>
-                  )}
-                </div>
-
-                
-
-                <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-                  <thead>
-                    <tr style={{ textAlign: "left", fontSize: 13, color: "#6b7280", borderTop: "1px solid #f3f4f6" }}>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.nameCalc }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ width: 20 }} />
-                          <div>
-                            {/* LayoutList (Name) Icon */}
-                            <LayoutList className="mr-1 inline-block h-5 w-5 align-middle"/>
-                            Name
-                          </div>
-                        </div>
-                      </th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.assignee }}>
-                        {/* User Icon */}
-                        <User className="mr-1 inline-block h-5 w-5 align-middle"/>
-                        Assignee
-                      </th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.dueDate }}>
-                         {/* Calendar (Due) Icon */}
-                         <Calendar className="mr-1 inline-block h-5 w-5 align-middle" />
-                         Due
-                      </th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.timeRemaining }}>
-                        {/* Clapperboard (Time Remaining) Icon */}
-                        <Clapperboard className="mr-1 inline-block h-5 w-5 align-middle" />
-                        Time Remaining
-                      </th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.priority }}>
-                        {/* List Filter (Priority) List Filter Icon */}
-                        <ListFilter className="mr-1 inline-block h-5 w-5 align-middle"/>
-                        Priority
-                      </th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.status }}>
-                        {/* Target(Status) Icon */}
-                        <Target className="mr-1 inline-block h-5 w-5 align-middle"/>
-                        Status
-                      </th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.comments, paddingLeft: "0px"}}>
-                        {/* Comments Icon */}
-                        <MessagesSquare className="mr-1 inline-block h-5 w-5 align-middle"/>
-                        Comments
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>{visibleTasks.map((t) => <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>)}</tbody>
-                </table>
-                
-                {/* Pagination controls for this status */}
-                {totalPages > 1 && (
-                  <div /* pagination bar */
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "8px 16px 12px 16px",
-                      borderTop: "1px solid #f3f4f6",
-                      fontSize: 12,
-                      color: "#6b7280",
-                    }}
-                  >
-                    <div>
-                      Showing{" "}
-                      <strong>
-                        {startIndex + 1}–
-                        {Math.min(endIndex, tasks.length)}
-                      </strong>{" "}
-                      of <strong>{tasks.length}</strong> tasks
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
+                  <div className="flex items-center gap-4">
+                    {totalPages > 1 && (
+                      <div style={{ fontSize: 12, color: "#6b7280" }}>
+                        Page {currentPage} of {totalPages}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
                       <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
@@ -895,6 +820,80 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                       >
                         Next
                       </button>
+                    </div>
+                  </div>
+                </div>
+
+
+
+                <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+                  <thead>
+                    <tr style={{ textAlign: "left", fontSize: 13, color: "#6b7280", borderTop: "1px solid #f3f4f6" }}>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.nameCalc }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ width: 20 }} />
+                          <div>
+                            {/* LayoutList (Name) Icon */}
+                            <LayoutList className="mr-1 inline-block h-5 w-5 align-middle" />
+                            Name
+                          </div>
+                        </div>
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.assignee }}>
+                        {/* User Icon */}
+                        <User className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Assignee
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.dueDate }}>
+                        {/* Calendar (Due) Icon */}
+                        <Calendar className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Due
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.timeRemaining }}>
+                        {/* Clapperboard (Time Remaining) Icon */}
+                        <Clapperboard className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Time Remaining
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.priority }}>
+                        {/* List Filter (Priority) List Filter Icon */}
+                        <ListFilter className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Priority
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.status }}>
+                        {/* Target(Status) Icon */}
+                        <Target className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Status
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.comments, paddingLeft: "0px" }}>
+                        {/* Comments Icon */}
+                        <MessagesSquare className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Comments
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>{visibleTasks.map((t) => <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>)}</tbody>
+                </table>
+
+                {/* Pagination controls for this status */}
+                {totalPages > 1 && (
+                  <div /* pagination bar */
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "8px 16px 12px 16px",
+                      borderTop: "1px solid #f3f4f6",
+                      fontSize: 12,
+                      color: "#6b7280",
+                    }}
+                  >
+                    <div>
+                      Showing{" "}
+                      <strong>
+                        {startIndex + 1}–
+                        {Math.min(endIndex, tasks.length)}
+                      </strong>{" "}
+                      of <strong>{tasks.length}</strong> tasks
                     </div>
                   </div>
                 )}
