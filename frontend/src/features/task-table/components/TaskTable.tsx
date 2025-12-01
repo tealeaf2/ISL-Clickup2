@@ -195,6 +195,47 @@ function sortTasksByDueDateAndName(arr: Task[]): Task[] {
 }
 
 /**
+ * Checks if task is due within 24 hours
+ */
+function isDueWithin24Hours(dueDate?: string): boolean {
+  if (!dueDate) return false;
+  
+  try {
+    const isNumeric = /^\d+$/.test(dueDate);
+    const dueDt = isNumeric ? new Date(parseInt(dueDate)) : new Date(dueDate);
+    
+    if (isNaN(dueDt.getTime())) return false;
+    
+    const now = new Date();
+    const diffMs = dueDt.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    
+    return diffHours >= 0 && diffHours <= 24;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Fetches all tasks recursively including subtasks
+ */
+function getAllTasks(tasks: Task[]): Task[] {
+  const result: Task[] = [];
+  
+  function walk(taskList: Task[]) {
+    for (const task of taskList) {
+      result.push(task);
+      if (task.subtasks && task.subtasks.length > 0) {
+        walk(task.subtasks);
+      }
+    }
+  }
+  
+  walk(tasks);
+  return result;
+}
+
+/**
  * TaskTable component - Main dashboard for ClickUp tasks
  * 
  * Displays a comprehensive table-based dashboard with status grouping,
@@ -226,6 +267,8 @@ export const TaskTable: React.FC<TaskTableProps> = ({
 
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [sendingEmails, setSendingEmails] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<string | null>(null);
 
   // Fetch teams on component mount
   useEffect(() => {
@@ -356,11 +399,120 @@ export const TaskTable: React.FC<TaskTableProps> = ({
     return groupedSorted;
   }, [convertedTasks]);
 
+  // Get tasks due within 24 hours
+  const tasksDueWithin24Hours = useMemo(() => {
+    const allTasks = getAllTasks(convertedTasks);
+    return allTasks.filter(task => 
+      isDueWithin24Hours(task.dueDate) && 
+      task.assignee && 
+      task.status !== 'Complete'
+    );
+  }, [convertedTasks]);
+
+  // Group tasks by assignee
+  const tasksByAssignee = useMemo(() => {
+    const grouped = new Map<string, Task[]>();
+    
+    for (const task of tasksDueWithin24Hours) {
+      if (!task.assignee) continue;
+      
+      if (!grouped.has(task.assignee)) {
+        grouped.set(task.assignee, []);
+      }
+      grouped.get(task.assignee)!.push(task);
+    }
+    
+    return grouped;
+  }, [tasksDueWithin24Hours]);
   /**
    * Toggles expansion state for a task
    */
   const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
 
+  /**
+   * Sends email notifications to all assignees
+   */
+  /**
+   * Sends email notifications to all assignees (DEMO/MAILTO IMPLEMENTATION)
+   */
+  const handleSendEmails = async () => {
+    if (tasksByAssignee.size === 0) {
+      setEmailStatus('No tasks due within 24 hours found.');
+      return;
+    }
+    setSendingEmails(true);
+    setEmailStatus(null);
+    
+    try {
+      // 1. Get actual email addresses from assignees
+      const emailMap = new Map<string, string>();
+      
+      // Build a map of username -> email from all tasks
+      for (const task of clickUpTasks) {
+        for (const assignee of task.assignees) {
+          if (assignee.email && assignee.username) {
+            emailMap.set(assignee.username, assignee.email);
+          }
+        }
+      }
+      
+      // 2. Check if we have email addresses
+      const emailAddresses = Array.from(tasksByAssignee.keys())
+        .map(username => emailMap.get(username))
+        .filter(Boolean);
+      
+      if (emailAddresses.length === 0) {
+        setEmailStatus('No email addresses found for assignees.');
+        setSendingEmails(false);
+        return;
+      }
+      
+      // 3. Open separate email compose window for each assignee
+      let emailsOpened = 0;
+      
+      for (const [assignee, tasks] of tasksByAssignee.entries()) {
+        const email = emailMap.get(assignee);
+        
+        if (!email) continue;
+        
+        // Build email body for this specific assignee
+        let emailBody = `Hello ${assignee},\n\n`;
+        emailBody += `The following ClickUp tasks assigned to you are due within the next 24 hours:\n\n`;
+        
+        tasks.forEach(task => {
+          const taskLink = `https://app.clickup.com/t/${task.id}`;
+          emailBody += `• ${task.name}\n`;
+          emailBody += `  Due: ${formatDate(task.dueDate)}\n`;
+          emailBody += `  Priority: ${task.priority ? toTitleCase(task.priority) : 'Not set'}\n`;
+          emailBody += `  Status: ${task.status}\n`;
+          emailBody += `  Link: ${taskLink}\n\n`;
+        });
+        
+        emailBody += `Please prioritize these tasks to meet their deadlines.\n\n`;
+        emailBody += `Best regards,\nClickUp Task Manager`;
+        
+        const subject = encodeURIComponent(`URGENT: ${tasks.length} ClickUp Task${tasks.length > 1 ? 's' : ''} Due Within 24 Hours!`);
+        const body = encodeURIComponent(emailBody);
+        
+        // 4. Open Gmail compose window
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${subject}&body=${body}`;
+        
+        window.open(gmailUrl, '_blank');
+        emailsOpened++;
+        
+        // Small delay between opening tabs to prevent browser blocking
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      setEmailStatus(`Opened ${emailsOpened} Gmail compose window${emailsOpened > 1 ? 's' : ''} for ${emailsOpened} assignee${emailsOpened > 1 ? 's' : ''}!`);
+      
+      setTimeout(() => setEmailStatus(null), 5000);
+    } catch (err) {
+      setEmailStatus(`Failed to open email compose: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setSendingEmails(false);
+    }
+  };
   /**
    * Renders task rows recursively with expandable subtasks
    */
@@ -572,6 +724,23 @@ export const TaskTable: React.FC<TaskTableProps> = ({
             </select>
           )}
           <button
+            onClick={handleSendEmails}
+            disabled={sendingEmails || tasksDueWithin24Hours.length === 0}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              background: tasksDueWithin24Hours.length === 0 ? "#d1d5db" : "#6b46ff",
+              border: "none",
+              color: "#fff",
+              fontWeight: 700,
+              cursor: tasksDueWithin24Hours.length === 0 ? "not-allowed" : "pointer",
+              fontSize: 14,
+              opacity: sendingEmails ? 0.7 : 1,
+            }}
+          >
+            {sendingEmails ? "Sending..." : `📧 Notify (${tasksByAssignee.size})`}
+          </button>
+          <button
             style={{
               padding: "8px 12px",
               borderRadius: 8,
@@ -597,6 +766,21 @@ export const TaskTable: React.FC<TaskTableProps> = ({
           marginBottom: 18 
         }}>
           {error}
+        </div>
+      )}
+
+      {emailStatus && (
+        <div style={{ 
+          padding: 12, 
+          background: emailStatus.includes('Failed') ? "#fef2f2" : "#ecfdf5", 
+          border: `1px solid ${emailStatus.includes('Failed') ? "#fecaca" : "#a7f3d0"}`, 
+          borderRadius: 8, 
+          color: emailStatus.includes('Failed') ? "#dc2626" : "#059669",
+          marginBottom: 18,
+          fontSize: 14,
+          fontWeight: 500,
+        }}>
+          {emailStatus}
         </div>
       )}
 
