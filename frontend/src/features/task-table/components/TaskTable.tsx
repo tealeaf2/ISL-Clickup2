@@ -467,8 +467,8 @@ export const TaskTable: React.FC<TaskTableProps> = ({
         return;
       }
       
-      // 3. Open separate email compose window for each assignee
-      let emailsOpened = 0;
+      // 3. Prepare all email URLs first
+      const emailsToOpen: { assignee: string; email: string; url: string }[] = [];
       
       for (const [assignee, tasks] of tasksByAssignee.entries()) {
         const email = emailMap.get(assignee);
@@ -494,19 +494,48 @@ export const TaskTable: React.FC<TaskTableProps> = ({
         const subject = encodeURIComponent(`URGENT: ${tasks.length} ClickUp Task${tasks.length > 1 ? 's' : ''} Due Within 24 Hours!`);
         const body = encodeURIComponent(emailBody);
         
-        // 4. Open Gmail compose window
+        // Store the URL
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${subject}&body=${body}`;
         
-        window.open(gmailUrl, '_blank');
-        emailsOpened++;
-        
-        // Small delay between opening tabs to prevent browser blocking
-        await new Promise(resolve => setTimeout(resolve, 500));
+        emailsToOpen.push({ assignee, email, url: gmailUrl });
       }
       
-      setEmailStatus(`Opened ${emailsOpened} Gmail compose window${emailsOpened > 1 ? 's' : ''} for ${emailsOpened} assignee${emailsOpened > 1 ? 's' : ''}!`);
+      // 4. Open all windows with longer delays
+      let emailsOpened = 0;
+      let blockedWindows = 0;
       
-      setTimeout(() => setEmailStatus(null), 5000);
+      for (let i = 0; i < emailsToOpen.length; i++) {
+        const { assignee, url } = emailsToOpen[i];
+        
+        // Use unique target name for each window
+        const windowName = `email_${assignee.replace(/\s/g, '_')}_${i}_${Date.now()}`;
+        
+        console.log(`Opening email ${i + 1} of ${emailsToOpen.length} for ${assignee}`);
+        
+        const newWindow = window.open(url, windowName);
+        
+        // Check if window was blocked
+        if (newWindow && !newWindow.closed) {
+          emailsOpened++;
+          console.log(`✓ Successfully opened email for ${assignee}`);
+        } else {
+          blockedWindows++;
+          console.log(`✗ Blocked: Email for ${assignee}`);
+        }
+        
+        // Longer delay between windows (1 second)
+        if (i < emailsToOpen.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      if (blockedWindows > 0) {
+        setEmailStatus(`Opened ${emailsOpened} of ${emailsToOpen.length} email${emailsToOpen.length !== 1 ? 's' : ''}. ${blockedWindows} blocked by popup blocker. Please allow popups and try again.`);
+      } else {
+        setEmailStatus(`Successfully opened ${emailsOpened} Gmail compose window${emailsOpened > 1 ? 's' : ''} for ${emailsOpened} assignee${emailsOpened > 1 ? 's' : ''}!`);
+      }
+      
+      setTimeout(() => setEmailStatus(null), 8000);
     } catch (err) {
       setEmailStatus(`Failed to open email compose: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
