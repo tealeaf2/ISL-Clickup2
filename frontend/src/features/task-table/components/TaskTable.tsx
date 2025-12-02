@@ -19,6 +19,8 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { useClickUp } from '../../../shared/hooks/useClickUp';
+import { User, Target, Calendar, Clapperboard, MessagesSquare, ListFilter, LayoutList } from "lucide-react"
+
 
 /**
  * Props for TaskTable component
@@ -89,19 +91,19 @@ function formatDate(d?: string): string {
  */
 function calculateTimeRemaining(dueDate?: string): string {
   if (!dueDate) return "-";
-  
+
   try {
     const isNumeric = /^\d+$/.test(dueDate);
     const dueDt = isNumeric ? new Date(parseInt(dueDate)) : new Date(dueDate);
-    
+
     if (isNaN(dueDt.getTime())) return "-";
-    
+
     const now = new Date();
     const diffMs = dueDt.getTime() - now.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
     const remainingHours = diffHours % 24;
-    
+
     if (diffHours < 0) {
       const absDays = Math.abs(diffDays);
       const absHours = Math.abs(remainingHours);
@@ -203,7 +205,7 @@ function sortTasksByDueDateAndName(arr: Task[]): Task[] {
  * @param {TaskTableProps} props - Component props
  * @returns {JSX.Element} A table-based dashboard with task management interface
  */
-export const TaskTable: React.FC<TaskTableProps> = ({ 
+export const TaskTable: React.FC<TaskTableProps> = ({
   apiToken: propApiToken,
   onTasksUpdate
 }) => {
@@ -214,18 +216,38 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   );
   const apiToken = propApiToken || localApiToken;
 
-  const { 
-    teams, 
-    tasks: clickUpTasks, 
+  const {
+    teams,
+    tasks: clickUpTasks,
     taskComments,
-    loading, 
-    error, 
-    fetchTeams, 
+    loading,
+    error,
+    fetchTeams,
     fetchTasks
   } = useClickUp(apiToken);
 
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  // Paganation by status.
+  const [pageByStatus, setPageByStatus] = useState<Record<string, number>>({});
+  const ITEMS_PER_PAGE = 5;
+
+  // Whenever the user selects a different team, 
+  // reset the status-level pagination back to page 1 for every status.
+  useEffect(() => {
+    setPageByStatus({});
+  }, [selectedTeam]);
+
+
+  // Pagination for subtasks by parent task id
+  const [subtaskPageByTask, setSubtaskPageByTask] = useState<Record<string, number>>({});
+  const SUBTASKS_PER_PAGE = 5;
+
+
+
+
+
 
   // Fetch teams on component mount
   useEffect(() => {
@@ -259,10 +281,10 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   const convertedTasks: Task[] = useMemo(() => {
     const taskMap = new Map<string, Task>();
     const topLevelTasks: Task[] = [];
-    
+
     for (const task of clickUpTasks) {
       const normalizedStatus = toTitleCase(task.status.status);
-      
+
       // Get comments from the taskComments map if available, otherwise use description
       let comments = taskComments.get(task.id) || [];
       if (comments.length === 0 && task.description && task.description.trim()) {
@@ -272,7 +294,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
       }
 
       // Handle due_date as both string and number (matching API format)
-      const dueDateStr = task.due_date 
+      const dueDateStr = task.due_date
         ? (typeof task.due_date === 'number' ? String(task.due_date) : task.due_date)
         : undefined;
 
@@ -293,7 +315,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
     // Build parent-child relationships
     for (const task of clickUpTasks) {
       const convertedTask = taskMap.get(task.id)!;
-      
+
       if (task.parent) {
         const parentTask = taskMap.get(task.parent);
         if (parentTask) {
@@ -317,7 +339,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
       if (!map.has(status)) map.set(status, []);
       map.get(status)!.push(t);
     }
-    
+
     const preferredOrder = ["To Do", "In Progress", "Review", "Complete"];
 
     const sortedKeys = Array.from(map.keys()).sort((a, b) => {
@@ -370,6 +392,35 @@ export const TaskTable: React.FC<TaskTableProps> = ({
     const indent = Math.min(depth * 14, 56);
 
     const statusColor = STATUS_COLORS[task.status] ?? STATUS_COLORS.Unknown;
+
+    // --- subtask pagination setup for this parent task ---
+    let visibleSubtasks: Task[] = [];
+    let subStartIndex = 0;
+    let subEndIndex = 0;
+    let subTotalPages = 0;
+    let subCurrentPage = 1;
+
+    if (hasSub && isOpen) {
+      const allSubs = task.subtasks!;
+      const totalSubs = allSubs.length;
+
+      subTotalPages = Math.max(1, Math.ceil(totalSubs / SUBTASKS_PER_PAGE));
+
+      const rawPage = subtaskPageByTask[task.id] ?? 1;
+      subCurrentPage = Math.min(rawPage, subTotalPages);
+
+      subStartIndex = (subCurrentPage - 1) * SUBTASKS_PER_PAGE;
+      subEndIndex = subStartIndex + SUBTASKS_PER_PAGE;
+
+      visibleSubtasks = allSubs.slice(subStartIndex, subEndIndex);
+    }
+
+    const handleSubtaskPageChange = (newPage: number) => {
+      setSubtaskPageByTask((prev) => ({
+        ...prev,
+        [task.id]: newPage,
+      }));
+    };
 
     return (
       <React.Fragment key={task.id}>
@@ -438,9 +489,9 @@ export const TaskTable: React.FC<TaskTableProps> = ({
           </td>
 
           <td style={{ padding: "10px 12px", width: COL_WIDTHS.timeRemaining, verticalAlign: "middle" }}>
-            <div 
-              style={{ 
-                fontSize: 12, 
+            <div
+              style={{
+                fontSize: 12,
                 color: task.timeRemaining?.includes('overdue') ? "#dc2626" : task.timeRemaining === "Due now" ? "#ff7a00" : task.timeRemaining?.includes("h") && !task.timeRemaining.includes("d") ? "#dc2626" : "#6b7280",
                 fontWeight: task.timeRemaining?.includes('overdue') || task.timeRemaining === "Due now" ? 600 : 400
               }}
@@ -486,7 +537,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
             </div>
           </td>
 
-          <td style={{ padding: "10px 12px", width: COL_WIDTHS.comments, verticalAlign: "middle", paddingRight: "30px", paddingLeft: "0px"}}>
+          <td style={{ padding: "10px 12px", width: COL_WIDTHS.comments, verticalAlign: "middle", paddingRight: "30px", paddingLeft: "0px" }}>
             {task.comments && task.comments.length > 0 ? (
               <ul style={{ margin: 0, paddingLeft: 0, fontSize: 13, color: "#6b7280" }}>
                 {task.comments.map((comment, idx) => (
@@ -499,9 +550,94 @@ export const TaskTable: React.FC<TaskTableProps> = ({
           </td>
         </tr>
 
-        {hasSub && isOpen ? (
-          task.subtasks!.map((st) => <React.Fragment key={st.id}>{renderTaskRows(st, depth + 1)}</React.Fragment>)
-        ) : null}
+        {/* ---  render paginated subtasks + their pager --- */}
+        {hasSub && isOpen && (
+          <>
+            {/* subtask pagination row */}
+            {subTotalPages > 1 && (
+              <tr>
+                <td
+                  colSpan={7}
+                  style={{
+                    padding: "4px 16px 8px 16px",
+                    fontSize: 11,
+                    color: "#6b7280",
+                    background: "#f9fafb",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{marginLeft: indent}}>
+                      Subtasks:{" "}
+                      <strong>
+                        {subStartIndex + 1}–
+                        {Math.min(subEndIndex, task.subtasks!.length)}
+                      </strong>{" "}
+                      of <strong>{task.subtasks!.length}</strong>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        onClick={() =>
+                          handleSubtaskPageChange(subCurrentPage - 1)
+                        }
+                        disabled={subCurrentPage === 1}
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          border: "1px solid #e5e7eb",
+                          background:
+                            subCurrentPage === 1 ? "#f3f4f6" : "#ffffff",
+                          color:
+                            subCurrentPage === 1 ? "#9ca3af" : "#111827",
+                          cursor:
+                            subCurrentPage === 1 ? "default" : "pointer",
+                        }}
+                      >
+                        Prev
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleSubtaskPageChange(subCurrentPage + 1)
+                        }
+                        disabled={subCurrentPage === subTotalPages}
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          border: "1px solid #e5e7eb",
+                          background:
+                            subCurrentPage === subTotalPages
+                              ? "#f3f4f6"
+                              : "#ffffff",
+                          color:
+                            subCurrentPage === subTotalPages
+                              ? "#9ca3af"
+                              : "#111827",
+                          cursor:
+                            subCurrentPage === subTotalPages
+                              ? "default"
+                              : "pointer",
+                        }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            )}
+            {visibleSubtasks.map((st) => (
+              <React.Fragment key={st.id}>
+                {renderTaskRows(st, depth + 1)}
+              </React.Fragment>
+            ))}
+          </>
+        )}
+
       </React.Fragment>
     );
   };
@@ -523,7 +659,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
         <div style={{ maxWidth: "28rem", width: "100%", padding: "1.5rem", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.5rem" }}>
           <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#dc2626", marginBottom: "1rem" }}>Error Loading Data</h2>
           <p style={{ color: "#dc2626", marginBottom: "1rem" }}>{error}</p>
-          <button 
+          <button
             onClick={fetchTeams}
             style={{ width: "100%", padding: "0.5rem 1rem", background: "#dc2626", color: "#fff", borderRadius: "0.5rem", border: "none", cursor: "pointer" }}
           >
@@ -588,13 +724,13 @@ export const TaskTable: React.FC<TaskTableProps> = ({
       </div>
 
       {error && (
-        <div style={{ 
-          padding: 12, 
-          background: "#fef2f2", 
-          border: "1px solid #fecaca", 
-          borderRadius: 8, 
+        <div style={{
+          padding: 12,
+          background: "#fef2f2",
+          border: "1px solid #fecaca",
+          borderRadius: 8,
           color: "#dc2626",
-          marginBottom: 18 
+          marginBottom: 18
         }}>
           {error}
         </div>
@@ -616,6 +752,23 @@ export const TaskTable: React.FC<TaskTableProps> = ({
         <div style={{ display: "grid", gap: 12 }}>
           {grouped.map(([status, tasks]) => {
             const total = countWithSubtasks(tasks);
+
+            // compute pages
+            const totalPages = Math.max(1, Math.ceil(tasks.length / ITEMS_PER_PAGE));
+            const rawPage = pageByStatus[status] ?? 1;
+            const currentPage = Math.min(rawPage, totalPages); // clamp
+
+            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const visibleTasks = tasks.slice(startIndex, endIndex);
+
+            const handlePageChange = (newPage: number) => {
+              setPageByStatus((prev) => ({
+                ...prev,
+                [status]: newPage,
+              }));
+            };
+
             return (
               <section
                 key={status}
@@ -635,7 +788,52 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                       {tasks.length} top-level • {total} total
                     </div>
                   </div>
+
+
+                  <div className="flex items-center gap-4">
+                    {totalPages > 1 && (
+                      <div style={{ fontSize: 12, color: "#6b7280" }}>
+                        Page {currentPage} of {totalPages}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          border: "1px solid #e5e7eb",
+                          background: currentPage === 1 ? "#f9fafb" : "#ffffff",
+                          color: currentPage === 1 ? "#9ca3af" : "#111827",
+                          cursor: currentPage === 1 ? "default" : "pointer",
+                          fontSize: 12,
+                        }}
+                      >
+                        Prev
+                      </button>
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          border: "1px solid #e5e7eb",
+                          background:
+                            currentPage === totalPages ? "#f9fafb" : "#ffffff",
+                          color:
+                            currentPage === totalPages ? "#9ca3af" : "#111827",
+                          cursor: currentPage === totalPages ? "default" : "pointer",
+                          fontSize: 12,
+                        }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
                 </div>
+
+
 
                 <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                   <thead>
@@ -643,20 +841,71 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                       <th style={{ padding: "10px 12px", width: COL_WIDTHS.nameCalc }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                           <div style={{ width: 20 }} />
-                          <div>Name</div>
+                          <div>
+                            {/* LayoutList (Name) Icon */}
+                            <LayoutList className="mr-1 inline-block h-5 w-5 align-middle" />
+                            Name
+                          </div>
                         </div>
                       </th>
-
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.assignee }}>Assignee</th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.dueDate }}>Due</th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.timeRemaining }}>Time Remaining</th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.priority }}>Priority</th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.status }}>Status</th>
-                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.comments, paddingLeft: "0px"}}>Comments</th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.assignee }}>
+                        {/* User Icon */}
+                        <User className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Assignee
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.dueDate }}>
+                        {/* Calendar (Due) Icon */}
+                        <Calendar className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Due
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.timeRemaining }}>
+                        {/* Clapperboard (Time Remaining) Icon */}
+                        <Clapperboard className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Time Remaining
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.priority }}>
+                        {/* List Filter (Priority) List Filter Icon */}
+                        <ListFilter className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Priority
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.status }}>
+                        {/* Target(Status) Icon */}
+                        <Target className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Status
+                      </th>
+                      <th style={{ padding: "10px 12px", width: COL_WIDTHS.comments, paddingLeft: "0px" }}>
+                        {/* Comments Icon */}
+                        <MessagesSquare className="mr-1 inline-block h-5 w-5 align-middle" />
+                        Comments
+                      </th>
                     </tr>
                   </thead>
-                  <tbody>{tasks.map((t) => <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>)}</tbody>
+                  <tbody>{visibleTasks.map((t) => <React.Fragment key={t.id}>{renderTaskRows(t, 0)}</React.Fragment>)}</tbody>
                 </table>
+
+                {/* Pagination controls for this status */}
+                {totalPages > 1 && (
+                  <div /* pagination bar */
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "8px 16px 12px 16px",
+                      borderTop: "1px solid #f3f4f6",
+                      fontSize: 12,
+                      color: "#6b7280",
+                    }}
+                  >
+                    <div>
+                      Showing{" "}
+                      <strong>
+                        {startIndex + 1}–
+                        {Math.min(endIndex, tasks.length)}
+                      </strong>{" "}
+                      of <strong>{tasks.length}</strong> tasks
+                    </div>
+                  </div>
+                )}
               </section>
             );
           })}
