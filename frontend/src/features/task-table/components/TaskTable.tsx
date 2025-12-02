@@ -563,7 +563,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                       alignItems: "center",
                     }}
                   >
-                    <div>
+                    <div style={{marginLeft: indent}}>
                       Subtasks:{" "}
                       <strong>
                         {subStartIndex + 1}–
