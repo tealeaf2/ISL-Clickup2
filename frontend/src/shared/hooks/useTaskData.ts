@@ -37,15 +37,15 @@ import type { Task, TaskDependency } from '../types';
  * const { tasks, tasksById, maxDay, dependencies } = useTaskData(initialTasks);
  */
 export const useTaskData = (initialTasks: Task[] = []) => {
-  console.log('useTaskData called with initialTasks:', initialTasks?.length || 0);
+  // console.log('useTaskData called with initialTasks:', initialTasks?.length || 0);
   const [tasks, setTasks] = useState<Task[]>(() => {
-    console.log('useTaskData useState initializer called with:', initialTasks?.length || 0);
+    // console.log('useTaskData useState initializer called with:', initialTasks?.length || 0);
     return initialTasks || [];
   });
 
   // Update tasks when initialTasks changes
   useEffect(() => {
-    console.log('useTaskData useEffect: initialTasks changed to:', initialTasks?.length || 0);
+    // console.log('useTaskData useEffect: initialTasks changed to:', initialTasks?.length || 0);
     if (initialTasks && initialTasks.length > 0) {
       setTasks(initialTasks);
     }

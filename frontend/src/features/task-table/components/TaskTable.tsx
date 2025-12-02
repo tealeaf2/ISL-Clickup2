@@ -459,7 +459,16 @@ export const TaskTable: React.FC<TaskTableProps> = ({
 
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>{task.name}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>
+                    <a
+                      href={`https://app.clickup.com/t/${task.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "inherit", textDecoration: "none" }}
+                    >
+                      {task.name}
+                    </a>
+                  </div>
                   {task.comments && task.comments.length > 0 && (
                     <div style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>{task.comments[0]}</div>
                   )}
