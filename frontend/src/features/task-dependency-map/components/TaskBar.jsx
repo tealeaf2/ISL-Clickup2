@@ -57,44 +57,85 @@ const TaskBar = ({
   task,
   isSelected,
   blockers,
-  onClick
+  onClick,
+  isDimmed,
+  isInBlastRadius,
 }) => {
-  const rect = task.rect;
-  
+  const { rect, priority } = task;
+
   // Ensure rect has valid values - prevents rendering errors with invalid data
   const safeRect = {
     x: isNaN(rect?.x) ? 0 : rect?.x || 0,
     y: isNaN(rect?.y) ? 0 : rect?.y || 0,
-    w: isNaN(rect?.w) ? 100 : rect?.w || 100,  // Default width if invalid
-    h: isNaN(rect?.h) ? 24 : rect?.h || 24      // Default height if invalid
+    w: isNaN(rect?.w) ? 100 : rect?.w || 100,
+    h: isNaN(rect?.h) ? 24 : rect?.h || 24
   };
-  
+  const priorityColor = getPriorityStrokeColor(priority?.priority);
+  const priorityWidth = getPriorityStrokeWidth(priority?.priority);
+
+  const finalStroke = isSelected ? "#2563eb" : priorityColor;
+  const finalStrokeWidth = isSelected ? 2 : priorityWidth;
+
+  const opacity = isDimmed ? 0.15 : 1;
+  const filter = isDimmed ? 'grayscale(100%)' : 'none';
+
   /**
    * Handles click - selects task and opens edit modal
    * Calculates click position for proper modal positioning
    */
   const handleClick = (e) => {
     e.stopPropagation();
-    
+
     // Calculate click position in screen coordinates (for modal positioning)
     // Modal positioning uses screen coordinates, not SVG-relative coordinates
     const clickX = e.clientX;
     const clickY = e.clientY;
-    
+
     // Pass task and click position to parent handler
     if (onClick) {
       onClick(e, task, { x: clickX, y: clickY });
     }
   };
 
-  
+
   return (
     <g
       key={task.id}
       data-taskid={task.id}
       onClick={handleClick}
       className="cursor-pointer task-bar"
+      style={{ opacity, filter }}
     >
+      {/* BLAST RADIUS HALO */}
+      {isInBlastRadius && (
+        <rect
+          x={safeRect.x - 6}
+          y={safeRect.y - 6}
+          width={safeRect.w + 12}
+          height={safeRect.h + 12}
+          rx={8}
+          fill="none"
+          stroke="#ef4444"
+          strokeWidth={2}
+          opacity={0.6}
+          className="animate-pulse"
+        />
+      )}
+
+      {/* SELECTION HALO */}
+      {isSelected && (
+        <rect
+          x={safeRect.x - 3}
+          y={safeRect.y - 3}
+          width={safeRect.w + 6}
+          height={safeRect.h + 6}
+          rx={6}
+          fill="none"
+          stroke="#93c5fd"
+          strokeWidth={2}
+        />
+      )}
+
       {/* Task bar */}
       <rect
         x={safeRect.x}
@@ -104,10 +145,10 @@ const TaskBar = ({
         rx={8}
         fill={isSelected ? "#fbbf24" : (STATUS_COLORS[task.status] || STATUS_COLORS.default)}
         opacity={0.92}
-        stroke={getPriorityStrokeColor(task.priority)}
-        strokeWidth={getPriorityStrokeWidth(task.priority)}
+        stroke={finalStroke}
+        strokeWidth={finalStrokeWidth}
       />
-      
+
       {/* Task label with text clipping */}
       <g>
         <defs>
@@ -131,8 +172,8 @@ const TaskBar = ({
           {!task.parentId ? `📋 ${task.name}` : `  ↳ ${task.name}`}
         </text>
       </g>
-      
-      
+
+
       {/* Blocker badge */}
       {blockers.length > 0 && (
         <g>
@@ -155,7 +196,7 @@ const TaskBar = ({
           </text>
         </g>
       )}
-      
+
       {/* Selection ring */}
       {isSelected && (
         <rect

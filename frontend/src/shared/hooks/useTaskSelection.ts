@@ -79,7 +79,7 @@ export const useTaskSelection = () => {
    * Requires a task to be selected (selectedId must be set).
    */
   const openEdit = () => {
-    console.log('openEdit called, selectedId:', selectedId);
+    // console.log('openEdit called, selectedId:', selectedId);
     setEditOpen(true);
     // Keep selectedId so edit modal knows which task to edit
     // The task details modal will be hidden by the conditional rendering
